@@ -167,7 +167,7 @@ const courMem=new Map();       // 'YYYY-SEASON' -> items
 function curSeason(d=new Date()){const m=d.getMonth()+1;return{year:d.getFullYear(),season:m<=3?'WINTER':m<=6?'SPRING':m<=9?'SUMMER':'FALL'}}
 function courOf(date){const y=+String(date||'').slice(0,4),m=+String(date||'').slice(5,7);if(!y||!m)return'';return y+'-'+(m<=3?'WINTER':m<=6?'SPRING':m<=9?'SUMMER':'FALL')}
 const S0=curSeason();
-const ui={tab:'drama',year:S0.year,season:S0.season,items:[],loading:false,error:'',sort:'auto',onlyUnrated:false,svc:'all',state:'all',cols:2,cont:false,
+const ui={tab:'drama',year:S0.year,season:S0.season,items:[],loading:false,error:'',sort:'auto',onlyUnrated:false,svc:'either',state:'all',cols:2,cont:true,
   query:'',dSearch:null,
   mvQuery:'',mvYear:'',mvResults:null,mvState:'want',mvSvc:'all',mvSort:'new',mvLoading:false,mvError:'',
   mySort:'group',mineF:'all',mineK:'all',tasteK:'tv',promptCour:null,
@@ -887,7 +887,7 @@ function visibleDrama(){
     if(ui.state==='want'&&!isWant(it.key))return false;
     if(ui.state==='dropped'&&!isDropped(it.key))return false;
     if(ui.state==='fav'&&!isFav(it.key))return false;
-    if(ui.svc!=='all'){
+    if(ui.svc!=='all'&&!ui.dSearch){   // 検索結果は配信で絞らない（探した作品が消えないように）
       const s=streamOf(it.key);
       const ok=ui.svc==='prime'?s.prime.v===true:ui.svc==='netflix'?s.netflix.v===true:(s.prime.v===true||s.netflix.v===true);
       if(!ok)return false;
