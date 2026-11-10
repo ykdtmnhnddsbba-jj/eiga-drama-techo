@@ -257,6 +257,17 @@ async function searchMovies(text,year){
   const d=await tmdb('/search/movie',p);
   return remember((d.results||[]).map(normMv));
 }
+// 番組(シリーズ)をシーズンごとの作品に分ける。キーは tv:<TMDB ID>:s<番号>
+async function expandSeasons(it){
+  const d=await tmdb('/tv/'+it.tmdb,{language:'ja-JP'});
+  const ss=(d.seasons||[]).filter(x=>x.season_number>0);
+  if(ss.length<2)return[];
+  return remember(ss.map(x=>({...it,key:'tv:'+it.tmdb+':s'+x.season_number,season_no:x.season_number,
+    title:it.title+' シーズン'+x.season_number,
+    cover:x.poster_path?IMG+x.poster_path:it.cover,avg:null,votes:0,
+    desc:(x.overview||'').trim()||it.desc,date:x.air_date||'',year:+String(x.air_date||'').slice(0,4)||null,
+    eps:x.episode_count||null,url:'https://www.themoviedb.org/tv/'+it.tmdb+'/season/'+x.season_number})));
+}
 const detailMem=new Map();
 async function loadDetail(it){
   if(!it.tmdb)return null;
@@ -439,10 +450,11 @@ function itemByKey(key){
   if(!r)return null;
   const kind=kindOf(key);
   return{key,kind,tmdb:r.tmdb||null,title:r.title||'(無題)',orig:r.orig||'',cover:r.cover||'',genres:r.genres||[],tags:r.tags||[],avg:null,votes:0,pop:0,desc:'',
-    date:r.date||'',year:r.year||null,url:r.tmdb?`https://www.themoviedb.org/${kind==='tv'?'tv':'movie'}/${r.tmdb}`:''};
+    date:r.date||'',year:r.year||null,season_no:r.season_no||null,eps:r.eps||null,
+    url:r.tmdb?`https://www.themoviedb.org/${kind==='tv'?'tv':'movie'}/${r.tmdb}${r.season_no?'/season/'+r.season_no:''}`:''};
 }
 function snapshot(it){return{kind:it.kind,tmdb:it.tmdb||null,title:it.title,orig:it.orig||'',cover:it.cover||'',genres:it.genres||[],tags:it.tags||[],
-  date:it.date||'',year:it.year||null,season:it.kind==='tv'?courOf(it.date):''}}
+  date:it.date||'',year:it.year||null,season:it.kind==='tv'?courOf(it.date):'',season_no:it.season_no||null,eps:it.eps||null}}
 function upsert(it,patch){
   const old=db.ratings[it.key];
   const live=(old&&!old.deleted)?old:null;
@@ -741,9 +753,20 @@ function gridChange(e){
   if(e.target.classList.contains('qm'))upsert(it,{memo:e.target.value.trim()});
   refreshCard(q.closest('.card'),key);
 }
+async function splitSeasons(key){
+  const i=(ui.dSearch||[]).findIndex(x=>x.key===key);if(i<0)return;
+  const it=ui.dSearch[i];
+  try{
+    const ss=await expandSeasons(it);
+    if(!ss.length){it.single=true;toast('この番組はシーズンが1つだけです');renderDramaGrid();return}
+    ui.dSearch.splice(i,1,...ss);ui.resort=true;queueStreaming(ss);renderDramaGrid();
+    toast(ss.length+'シーズンに分けました');
+  }catch(e){toast(e.message,4000)}
+}
 function bindGrid(el){
   el.onclick=e=>{
     if(e.target.closest('a.badge'))return;
+    const sx=e.target.closest('.sx');if(sx){splitSeasons(sx.dataset.x);return}
     if(gridClick(e))return;
     if(!e.target.closest('.cover,.ctitle'))return;
     const c=e.target.closest('.card');if(c)openModal(c.dataset.key);
@@ -753,7 +776,8 @@ function bindGrid(el){
 function cardHtml(it,rc,showMatch){
   const r=db.ratings[it.key],rated=isRated(it.key);
   const when=it.kind==='tv'?(it.date?it.date.slice(5).replace('-','/')+'〜':''):(it.year?it.year+'年':'');
-  const meta=[when,it.genres.slice(0,3).join(' / '),it.cont?'継続・続編':''].filter(Boolean).join(' ・ ');
+  const meta=[when,it.eps?it.eps+'話':'',it.genres.slice(0,3).join(' / '),it.cont?'継続・続編':''].filter(Boolean).join(' ・ ');
+  const canSplit=it.kind==='tv'&&it.tmdb&&!it.season_no&&!it.single&&ui.dSearch&&ui.dSearch.includes(it);
   const noimg=it.cover?'':`<span class="noimg">${esc(it.title.slice(0,8))}</span>`;
   return`<div class="card item" data-key="${esc(it.key)}">
     <div class="cover" style="${it.cover?`background-image:url('${esc(it.cover)}')`:''}">${rated?`<span class="score">${r.score}</span>`:''}${noimg}</div>
@@ -764,6 +788,7 @@ function cardHtml(it,rc,showMatch){
       ${showMatch&&rc&&rc.match!=null&&!rated?`<div class="reason">相性 ${rc.match}%${simsTxt(rc)}${rc.reasons.length?'　◎ '+esc(rc.reasons.join('・')):''}</div>`:''}
       ${it.desc?`<div class="ovw">${esc(it.desc)}</div>`:''}
       ${ctrlHtml(it.key)}
+      ${canSplit?`<div><button class="qb sx" data-x="${esc(it.key)}" title="この番組をシーズンごとの作品に分けて表示します">📑 シーズン別に分ける</button></div>`:''}
     </div></div>`;
 }
 // 入力中のフォーカスを失わないように、再描画前後で一言メモの入力を復元する
