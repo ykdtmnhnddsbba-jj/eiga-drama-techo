@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>映画ドラマ手帖 — 観たい映画のメモ・ドラマのクール別評価</title>
+<style>
+:root{
+  --bg:#12131a;--panel:#1b1d27;--panel2:#242736;--line:#2e3144;--text:#ecedf3;--sub:#9da1b5;
+  --accent:#ffb347;--accent2:#5eead4;--warn:#fbbf24;--prime:#38bdf8;--netflix:#f43f5e;
+  --radius:14px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Hiragino Sans","Noto Sans JP","Yu Gothic UI",system-ui,sans-serif;line-height:1.6}
+button,input,select,textarea{font:inherit;color:inherit}
+header{position:sticky;top:0;z-index:20;background:rgba(18,19,26,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.bar{max-width:1600px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{font-weight:800;font-size:18px;letter-spacing:.04em}
+.logo b{color:var(--accent)}
+nav{display:flex;gap:4px;flex:1;flex-wrap:wrap}
+nav button{background:none;border:0;padding:8px 14px;border-radius:999px;color:var(--sub);cursor:pointer;font-weight:600}
+nav button.on{background:var(--panel2);color:var(--text)}
+.chip{font-size:12px;padding:4px 10px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);color:var(--sub);cursor:pointer}
+.chip.ok{color:var(--accent2);border-color:#2a5b55}
+.chip.bad{color:var(--warn);border-color:#6b5a1c}
+main{max-width:1600px;margin:0 auto;padding:18px 16px 80px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.toolbar select,.toolbar input[type=text],.field input,.field select,.field textarea{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.toolbar input[type=text]{min-width:200px;flex:1}
+.btn{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 14px;cursor:pointer;font-weight:600}
+.btn:hover{border-color:var(--sub)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#220;}
+.btn.danger{color:#ff9aa8}
+label.chk{display:flex;gap:6px;align-items:center;color:var(--sub);font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(var(--cols,2),minmax(0,1fr));gap:12px}
+@media(max-width:1000px){.grid{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;cursor:pointer;display:flex;flex-direction:column;transition:transform .12s,border-color .12s}
+.card:hover{transform:translateY(-3px);border-color:#4a4f6e}
+.cover{position:relative;aspect-ratio:2/3;background:var(--panel2) center/cover no-repeat}
+.cover .score{position:absolute;top:8px;left:8px;background:var(--accent);color:#220;font-weight:800;border-radius:8px;padding:2px 9px;font-size:15px}
+.cover .match{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.72);color:var(--accent2);font-weight:700;border-radius:8px;padding:2px 8px;font-size:12px}
+.cover .badges{position:absolute;left:6px;right:6px;bottom:6px;display:flex;gap:4px;flex-wrap:wrap}
+.badge{font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;color:#fff}
+.badge.prime{background:var(--prime);color:#04202e}
+.badge.netflix{background:var(--netflix)}
+a.badge{text-decoration:none;cursor:pointer}
+a.badge:hover{filter:brightness(1.15);text-decoration:underline}
+.badge.hint{background:rgba(0,0,0,.65);border:1px dashed #aaa;color:#ddd}
+.cbody{padding:9px 10px 11px;display:flex;flex-direction:column;gap:4px}
+.ctitle{font-size:14px;font-weight:700;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.meta{font-size:12px;color:var(--sub)}
+.reason{font-size:11.5px;color:var(--accent2)}
+.memo{font-size:12px;color:var(--sub);font-style:italic;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.empty{padding:50px 10px;text-align:center;color:var(--sub)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:16px}
+.panel h2{margin:0 0 10px;font-size:17px}
+.panel h3{margin:14px 0 6px;font-size:14px;color:var(--sub)}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.field label{font-size:13px;color:var(--sub)}
+.field textarea{min-height:120px;resize:vertical}
+.hint{font-size:12.5px;color:var(--sub)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.bars{display:grid;gap:6px}
+.bar-r{display:grid;grid-template-columns:130px 1fr 52px;gap:8px;align-items:center;font-size:13px}
+.track{height:10px;background:var(--panel2);border-radius:99px;overflow:hidden}
+.fill{height:100%;border-radius:99px}
+.fill.pos{background:var(--accent2)}.fill.neg{background:var(--accent)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:720px){.two{grid-template-columns:1fr}.bar-r{grid-template-columns:100px 1fr 44px}}
+/* modal */
+.ov0{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;overflow:auto}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:18px;max-width:760px;width:100%;overflow:hidden}
+.mhead{display:flex;gap:16px;padding:18px}
+.mhead .mc{width:130px;aspect-ratio:2/3;background:var(--panel2) center/cover;border-radius:10px;flex:none}
+.mhead h2{margin:0 0 4px;font-size:20px;line-height:1.3}
+.mbody{padding:0 18px 18px}
+.scores{display:grid;grid-template-columns:repeat(10,1fr);gap:5px;margin:8px 0}
+.scores button{padding:10px 0;border-radius:9px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;font-weight:700}
+.scores button.on{background:var(--accent);border-color:var(--accent);color:#220}
+.desc{font-size:13px;color:var(--sub);max-height:110px;overflow:auto;white-space:pre-wrap}
+.stream-row{display:flex;gap:10px;flex-wrap:wrap}
+.stream-row .sbox{flex:1;min-width:200px;background:var(--panel2);border-radius:10px;padding:10px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#000;border:1px solid var(--line);padding:10px 18px;border-radius:999px;z-index:99;font-size:14px}
+.pill{display:inline-block;font-size:11px;padding:1px 8px;border-radius:99px;background:var(--panel2);color:var(--sub);margin:0 4px 4px 0}
+.stick{position:sticky;top:var(--hh,56px);z-index:15;background:var(--bg);padding:12px 0 2px;margin:-12px 0 6px;border-bottom:1px solid var(--line)}
+.stick .toolbar{margin-bottom:10px}
+.gh{grid-column:1/-1;margin:14px 0 0;padding:6px 2px;font-size:18px;border-bottom:2px solid var(--accent);color:var(--text)}
+.gh:first-child{margin-top:0}
+.trow{display:flex;gap:8px;align-items:flex-start}
+.trow .ctitle{flex:1;min-width:0}
+.avg{flex:none;font-weight:800;font-size:16px;line-height:1.3;padding:1px 10px;border-radius:8px;background:#2a2d3f;color:#b5b9cc;white-space:nowrap}
+.avg.mid{background:#16312f;color:#5eead4;border:1px solid #2a5b55}
+.avg.hi{background:#3a2f0b;color:#fbbf24;border:1px solid #8a6f1c;font-size:17px}
+.avg small{font-size:10px;font-weight:600;opacity:.75;margin-left:3px}
+.card.item{flex-direction:row;cursor:default}
+.card.item:hover{transform:none;border-color:#4a4f6e}
+.item .cover{width:92px;flex:none;aspect-ratio:2/3;align-self:flex-start;cursor:pointer}
+.item .cbody{flex:1;min-width:0;padding:10px 14px 12px;gap:6px}
+.item .ctitle{font-size:15px;cursor:pointer;-webkit-line-clamp:1}
+.item .ctitle:hover{color:var(--accent2)}
+.item .bd{display:flex;gap:4px;min-height:0}
+.qc{display:flex;flex-direction:column;gap:7px;margin-top:2px}
+.sbs{display:flex;gap:4px}
+.sb{flex:1;min-width:0;padding:9px 0;border-radius:8px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;font-weight:700;font-size:14px;color:var(--sub)}
+.sb:hover{border-color:var(--accent);color:var(--text)}
+.sb.on{background:var(--accent);border-color:var(--accent);color:#220}
+.qc .r2{display:flex;gap:6px;flex-wrap:wrap}
+.qc input{width:100%;min-width:0;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13px}
+.qb{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:4px 12px;cursor:pointer;font-size:13px;color:var(--sub);white-space:nowrap}
+.qb:hover{border-color:var(--sub)}
+.qb.on.w{color:var(--accent2);border-color:#2a5b55;background:#16312f}
+.qb.on.f{color:var(--accent);border-color:#7a2f3d;background:#35171e}
+.qb.on.d{color:#ff9a9a;border-color:#7a3a3a;background:#331a1a}
+.qb.on.q{color:var(--warn);border-color:#6b5a1c;background:#33290d}
+footer{max-width:1200px;margin:0 auto;padding:0 16px 40px;color:var(--sub);font-size:12px}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.badge.other{background:#3a3d52;color:#cdd0e0;font-weight:600}
+.badge.none{background:rgba(0,0,0,.35);color:var(--sub);font-weight:500;border:1px dashed #555}
+.ovw{font-size:12px;color:var(--sub);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cover .noimg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:6px;text-align:center;font-size:12px;color:var(--sub);word-break:break-all}
+#mq{min-width:260px}
+
+</style>
+</head>
+<body>
+<header><div class="bar">
+  <div class="logo">映画ドラマ<b>手帖</b></div>
+  <nav id="nav"></nav>
+  <span id="syncChip" class="chip"></span>
+</div></header>
+<main id="main"></main>
+<footer>
+  作品データ・配信データ: <a href="https://www.themoviedb.org" target="_blank" rel="noopener" style="color:inherit">TMDB</a> ／ 配信は <a href="https://www.justwatch.com" target="_blank" rel="noopener" style="color:inherit">JustWatch</a>（TMDB経由）。
+  This product uses the TMDB API but is not endorsed or certified by TMDB.
+</footer>
+<div id="modalRoot"></div>
+
+<script>
+'use strict';
+/* =============== utils =============== */
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nowIso=()=>new Date().toISOString();
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function lsGet(k,def){try{const v=localStorage.getItem(k);return v?JSON.parse(v):def}catch(e){return def}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
+function toast(msg,ms=2600){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),ms)}
+
+/* =============== state =============== */
+const LS_DB='eigadb.v1',LS_SET='eigadb.settings.v1',LS_CACHE='eigadb.cour.v1';
+const SEASONS=[['WINTER','冬 (1月〜)'],['SPRING','春 (4月〜)'],['SUMMER','夏 (7月〜)'],['FALL','秋 (10月〜)']];
+const SEASON_JA={WINTER:'冬',SPRING:'春',SUMMER:'夏',FALL:'秋'};
+const COUR_M={WINTER:[1,3],SPRING:[4,6],SUMMER:[7,9],FALL:[10,12]};
+const SORD={WINTER:1,SPRING:2,SUMMER:3,FALL:4};
+const IMG='https://image.tmdb.org/t/p/w185';
+const IMG_L='https://image.tmdb.org/t/p/w342';
+
+function emptyDb(){return{schema_version:1,updated_at:null,ratings:{},streaming_override:{},streaming_cache:{}}}
+let db=Object.assign(emptyDb(),lsGet(LS_DB,{}));
+let settings=Object.assign({tmdb_key:'',google_client_id:'',drive_linked:false},lsGet(LS_SET,{}));
+// OAuthクライアントIDは公開されても安全な識別子（秘密ではない）。アニメ手帖と同じものを使い回す
+const DEFAULT_CLIENT_ID='568813131190-9pb3hf0f3g3rbiglkq4nbk88g4eltk9p.apps.googleusercontent.com';
+if(!settings.google_client_id)settings.google_client_id=DEFAULT_CLIENT_ID;
+const metaCache=new Map();     // key -> item
+const courMem=new Map();       // 'YYYY-SEASON' -> items
+function curSeason(d=new Date()){const m=d.getMonth()+1;return{year:d.getFullYear(),season:m<=3?'WINTER':m<=6?'SPRING':m<=9?'SUMMER':'FALL'}}
+function courOf(date){const y=+String(date||'').slice(0,4),m=+String(date||'').slice(5,7);if(!y||!m)return'';return y+'-'+(m<=3?'WINTER':m<=6?'SPRING':m<=9?'SUMMER':'FALL')}
+const S0=curSeason();
+const ui={tab:'drama',year:S0.year,season:S0.season,items:[],loading:false,error:'',sort:'auto',onlyUnrated:false,svc:'all',state:'all',cols:2,cont:false,
+  query:'',dSearch:null,
+  mvQuery:'',mvYear:'',mvResults:null,mvState:'want',mvSvc:'all',mvSort:'new',mvLoading:false,mvError:'',
+  mySort:'group',mineF:'all',mineK:'all',tasteK:'tv',promptCour:null,
+  rank:new Map(),shown:new Set(),resort:true,streamBusy:0,loadTok:0};
+
+function saveLocal(){db.updated_at=nowIso();lsSet(LS_DB,db)}
+function save(){saveLocal();scheduleSync()}
+function saveSettings(){lsSet(LS_SET,settings)}
+
+/* =============== TMDB =============== */
+const TVG={10759:'アクション&アドベンチャー',16:'アニメ',35:'コメディ',80:'犯罪',99:'ドキュメンタリー',18:'ドラマ',10751:'ファミリー',10762:'キッズ',9648:'ミステリー',10763:'ニュース',10764:'リアリティ',10765:'SF&ファンタジー',10766:'ソープオペラ',10767:'トーク',10768:'戦争&政治',37:'西部劇'};
+const MVG={28:'アクション',12:'アドベンチャー',16:'アニメーション',35:'コメディ',80:'犯罪',99:'ドキュメンタリー',18:'ドラマ',10751:'ファミリー',14:'ファンタジー',36:'歴史',27:'ホラー',10402:'音楽',9648:'ミステリー',10749:'ロマンス',878:'SF',10770:'テレビ映画',53:'スリラー',10752:'戦争',37:'西部劇'};
+const TV_EXCLUDE=new Set([16,99,10762,10763,10764,10767]);   // アニメ・ドキュメンタリー・キッズ・ニュース・リアリティ・トークは一覧から除く
+const kindOf=key=>String(key).slice(0,2);                    // 'tv' | 'mv'
+const KIND_JA={tv:'ドラマ',mv:'映画'};
+async function tmdb(path,params={}){
+  const k=(settings.tmdb_key||'').trim();
+  if(!k)throw new Error('TMDBキーが未設定です（設定タブで入力。アニメ手帖と同じキーでOK）');
+  const u=new URL('https://api.themoviedb.org/3'+path);
+  Object.entries(params).forEach(([a,b])=>u.searchParams.set(a,b));
+  const opt={headers:{accept:'application/json'}};
+  if(k.length>40)opt.headers.Authorization='Bearer '+k;else u.searchParams.set('api_key',k);
+  const r=await fetch(u,opt);
+  if(r.status===401)throw new Error('TMDBのキーが無効です（設定を確認）');
+  if(r.status===429)throw new Error('TMDBのアクセス制限中です。少し待ってからやり直してください');
+  if(!r.ok)throw new Error('TMDB '+r.status);
+  return r.json();
+}
+function decadeOf(date){const y=+String(date||'').slice(0,4);return y?(Math.floor(y/10)*10)+'年代':''}
+function normTv(r){
+  const gids=r.genre_ids||[],date=r.first_air_date||'';
+  return{key:'tv:'+r.id,kind:'tv',tmdb:r.id,title:r.name||r.original_name||'(無題)',orig:r.original_name||'',
+    cover:r.poster_path?IMG+r.poster_path:'',genres:gids.map(g=>TVG[g]).filter(Boolean),tags:[],gids,
+    avg:r.vote_count>=5?r.vote_average:null,votes:r.vote_count||0,pop:r.popularity||0,desc:(r.overview||'').trim(),
+    date,year:+date.slice(0,4)||null,url:'https://www.themoviedb.org/tv/'+r.id};
+}
+function normMv(r){
+  const gids=r.genre_ids||[],date=r.release_date||'';
+  const dec=decadeOf(date);
+  return{key:'mv:'+r.id,kind:'mv',tmdb:r.id,title:r.title||r.original_title||'(無題)',orig:r.original_title||'',
+    cover:r.poster_path?IMG+r.poster_path:'',genres:gids.map(g=>MVG[g]).filter(Boolean),tags:dec?[dec]:[],gids,
+    avg:r.vote_count>=20?r.vote_average:null,votes:r.vote_count||0,pop:r.popularity||0,desc:(r.overview||'').trim(),
+    date,year:+date.slice(0,4)||null,url:'https://www.themoviedb.org/movie/'+r.id};
+}
+function remember(items){items.forEach(it=>metaCache.set(it.key,it));return items}
+function pad2(n){return String(n).padStart(2,'0')}
+function courRange(year,season){const[m1,m2]=COUR_M[season];return{start:`${year}-${pad2(m1)}-01`,end:`${year}-${pad2(m2)}-${pad2(new Date(year,m2,0).getDate())}`}}
+async function pullPages(path,params,maxPages){
+  let out=[];
+  for(let p=1;p<=maxPages;p++){
+    const d=await tmdb(path,Object.assign({page:p},params));
+    out=out.concat(d.results||[]);
+    if(p>=(d.total_pages||1))break;
+    await sleep(120);
+  }
+  return out;
+}
+// 日本のドラマ：クール（放送開始日が期間内）。cont=true なら期間中に放送された続編・継続作品も足す
+async function fetchCour(year,season,cont,force){
+  const key=year+'-'+season+(cont?'-c':'');
+  const cache=lsGet(LS_CACHE,{});
+  if(!force&&courMem.has(key))return remember(courMem.get(key));
+  if(!force&&cache[key]&&Date.now()-cache[key].t<12*3600e3)return remember(cache[key].items);
+  const {start,end}=courRange(year,season);
+  const base={language:'ja-JP',sort_by:'popularity.desc',with_origin_country:'JP',with_original_language:'ja'};
+  const okG=r=>!(r.genre_ids||[]).some(g=>TV_EXCLUDE.has(g));
+  const main=await pullPages('/discover/tv',Object.assign({},base,{'first_air_date.gte':start,'first_air_date.lte':end,include_null_first_air_dates:'false'}),5);
+  const items=main.filter(okG).map(normTv);
+  if(cont){
+    const have=new Set(items.map(x=>x.key));
+    const more=await pullPages('/discover/tv',Object.assign({},base,{'air_date.gte':start,'air_date.lte':end}),3);
+    more.filter(okG).map(normTv).forEach(x=>{if(!have.has(x.key)){x.cont=true;items.push(x)}});
+  }
+  courMem.set(key,items);
+  cache[key]={t:Date.now(),items};
+  const keys=Object.keys(cache).sort((a,b)=>cache[b].t-cache[a].t).slice(0,10);
+  const trimmed={};keys.forEach(k=>trimmed[k]=cache[k]);
+  lsSet(LS_CACHE,trimmed);
+  return remember(items);
+}
+async function searchTv(text){
+  const d=await tmdb('/search/tv',{query:text,language:'ja-JP',include_adult:'false'});
+  return remember((d.results||[]).filter(r=>!(r.genre_ids||[]).includes(16)).map(normTv));
+}
+async function searchMovies(text,year){
+  const p={query:text,language:'ja-JP',include_adult:'false'};if(year)p.year=year;
+  const d=await tmdb('/search/movie',p);
+  return remember((d.results||[]).map(normMv));
+}
+const detailMem=new Map();
+async function loadDetail(it){
+  if(!it.tmdb)return null;
+  if(detailMem.has(it.key))return detailMem.get(it.key);
+  const path=(it.kind==='tv'?'/tv/':'/movie/')+it.tmdb;
+  const d=await tmdb(path,{language:'ja-JP',append_to_response:'credits'});
+  const cast=((d.credits||{}).cast||[]).slice(0,8).map(c=>c.name);
+  const crew=(d.credits||{}).crew||[];
+  const pick=re=>[...new Set(crew.filter(c=>re.test(c.job||'')).map(c=>c.name))].slice(0,4);
+  const rec={overview:(d.overview||'').trim(),cast,
+    directors:pick(/^Director$/),writers:pick(/Writer|Screenplay|Story/),
+    creators:(d.created_by||[]).map(c=>c.name),
+    runtime:d.runtime||null,episodes:d.number_of_episodes||null,tagline:(d.tagline||'').trim(),
+    networks:(d.networks||[]).map(n=>n.name).slice(0,3)};
+  detailMem.set(it.key,rec);
+  return rec;
+}
+
+/* =============== streaming =============== */
+const STREAM_TTL=14*86400e3;
+async function resolveStreaming(it){
+  if(!it.tmdb)return;
+  const p=await tmdb(`/${it.kind==='tv'?'tv':'movie'}/${it.tmdb}/watch/providers`);
+  const jp=(p.results||{}).JP||{};
+  const names=a=>(a||[]).map(f=>f.provider_name||'');
+  const flat=names(jp.flatrate),free=names(jp.free).concat(names(jp.ads));
+  const others=[...new Set(flat.concat(free).filter(n=>n&&!/prime video|amazon|netflix/i.test(n)))].slice(0,6);
+  db.streaming_cache[it.key]={prime:flat.some(n=>/prime video|amazon/i.test(n)),netflix:flat.some(n=>/netflix/i.test(n)),others,source:'tmdb',checked_at:nowIso()};
+}
+function streamOf(key){
+  const ov=db.streaming_override[key]||{},c=db.streaming_cache[key];
+  const f=svc=>{
+    if(ov[svc]===true||ov[svc]===false)return{v:ov[svc],src:'manual'};
+    if(c)return{v:!!c[svc],src:c.source};
+    return{v:null,src:'none'};
+  };
+  return{prime:f('prime'),netflix:f('netflix'),others:(c&&c.others)||[]};
+}
+let streamQueue=[],streamRunning=0,renderTimer=null;
+function needsStream(it){
+  if(!it.tmdb)return false;
+  const c=db.streaming_cache[it.key];
+  return !c||(Date.now()-Date.parse(c.checked_at||0))>STREAM_TTL;
+}
+function queueStreaming(items){
+  if(!(settings.tmdb_key||'').trim())return;
+  items.forEach(it=>{if(needsStream(it)&&!streamQueue.some(x=>x.key===it.key))streamQueue.push(it)});
+  pumpStream();
+}
+async function pumpStream(){
+  while(streamRunning<3&&streamQueue.length){
+    const it=streamQueue.shift();streamRunning++;ui.streamBusy=streamRunning+streamQueue.length;
+    (async()=>{
+      try{await resolveStreaming(it)}
+      catch(e){if(/キーが無効/.test(e.message)){streamQueue=[];toast(e.message,4000)}}
+      finally{
+        streamRunning--;ui.streamBusy=streamRunning+streamQueue.length;
+        if(!streamRunning&&!streamQueue.length)save();
+        clearTimeout(renderTimer);renderTimer=setTimeout(afterStream,350);
+        pumpStream();
+      }
+    })();
+    await sleep(120);
+  }
+}
+
+/* =============== taste / recommend =============== */
+function entries(kind){return Object.entries(db.ratings).filter(([k,r])=>!r.deleted&&(!kind||kindOf(k)===kind)).map(([key,r])=>({key,...r}))}
+function activeRatings(kind){return entries(kind).filter(r=>r.score>0)}
+function isRated(k){const r=db.ratings[k];return !!(r&&!r.deleted&&r.score>0)}
+function isWatched(k){const r=db.ratings[k];return !!(r&&!r.deleted&&(r.watched||r.score>0))}
+function isFav(k){const r=db.ratings[k];return !!(r&&!r.deleted&&r.fav)}
+function isDropped(k){const r=db.ratings[k];return !!(r&&!r.deleted&&r.dropped&&r.score>0)}
+function isWant(k){const r=db.ratings[k];return !!(r&&!r.deleted&&r.want)}
+function feats(o){const f=[];(o.genres||[]).forEach(g=>f.push(['g:'+g,1]));(o.tags||[]).forEach(t=>f.push(['t:'+t,.6]));return f}
+const profMemo={};
+function buildProfile(kind){
+  const key=(db.updated_at||'')+'|'+Object.keys(db.ratings).length;
+  const m=profMemo[kind];
+  if(m&&m.key===key)return m.v;
+  const v=computeProfile(kind);profMemo[kind]={key,v};return v;
+}
+function computeProfile(kind){
+  const rs=activeRatings(kind);
+  if(!rs.length)return{n:0,kind,mean:0,w:{}};
+  const mean=rs.reduce((a,r)=>a+r.score,0)/rs.length;
+  const num={},den={};
+  // 評価済み: 平均との差（お気に入りは+1.5）。評価なしのお気に入りは強め(+2)、気になるは弱め(+1)の好みシグナル
+  const samples=[];
+  entries(kind).forEach(r=>{
+    if(r.score>0)samples.push([r,r.score-mean+(r.fav?1.5:0),1]);
+    else if(r.fav)samples.push([r,2,.8]);
+    else if(r.want)samples.push([r,1,.5]);
+  });
+  const sampleById=new Map();
+  samples.forEach(([r,dev,sw])=>{
+    const fm=new Map(feats(r));sampleById.set(String(r.key),{dev,sw,fmap:fm});
+    fm.forEach((w,k)=>{num[k]=(num[k]||0)+w*sw*dev;den[k]=(den[k]||0)+w*sw});
+  });
+  const w={};Object.keys(num).forEach(k=>{w[k]={weight:num[k]/(den[k]+1.5),count:den[k]}});
+  const prof={n:rs.length,kind,mean,w,num,den,sampleById};
+  const vecs=[];
+  entries(kind).forEach(r=>{
+    let eff=null;
+    if(r.score>0)eff=r.score+(r.fav?1:0);else if(r.fav)eff=mean+1.5;
+    if(eff==null)return;
+    vecs.push({id:String(r.key),title:r.title,score:r.score>0?r.score:0,eff,f:feats(r)});
+  });
+  const df={};vecs.forEach(v=>v.f.forEach(([k])=>{df[k]=(df[k]||0)+1}));
+  const N=vecs.length;
+  prof.idf=k=>Math.log((N+1)/((df[k]||0)+1))+1;
+  vecs.forEach(v=>{const m=new Map();let s=0;v.f.forEach(([k,x])=>{const val=x*prof.idf(k);m.set(k,val);s+=val*val});v.m=m;v.norm=Math.sqrt(s)||1});
+  prof.vecs=vecs;
+  calibrate(prof);
+  return prof;
+}
+function predictZ(it,prof,skipId){
+  const f=feats(it);if(!f.length)return{z:0,sims:[]};
+  const sm=skipId!=null?prof.sampleById.get(skipId):null;
+  let sum=0,wsum=0;
+  f.forEach(([k,x])=>{
+    let nk=prof.num[k]||0,dk=prof.den[k]||0;
+    if(sm){const fx=sm.fmap.get(k);if(fx){nk-=fx*sm.sw*sm.dev;dk-=fx*sm.sw}}
+    sum+=(dk>0?nk/(dk+1.5):0)*x;wsum+=x;
+  });
+  const a=wsum?sum/wsum:0;
+  const cm=new Map();let s2=0;
+  f.forEach(([k,x])=>{const val=x*prof.idf(k);cm.set(k,val);s2+=val*val});
+  const cn=Math.sqrt(s2)||1;
+  const sims=[];
+  prof.vecs.forEach(v=>{
+    if(v.id===skipId)return;
+    let dot=0;cm.forEach((val,k)=>{const o=v.m.get(k);if(o)dot+=val*o});
+    const sc=dot/(cn*v.norm);if(sc>0)sims.push({v,s:sc});
+  });
+  sims.sort((x,y)=>y.s-x.s);
+  const top=sims.slice(0,4);
+  let kn=0;
+  if(top.length){let ws=0,ss=0;top.forEach(t=>{const q=t.s*t.s;ws+=q;ss+=q*t.v.eff});kn=ss/ws-prof.mean}
+  return{z:0.4*a+0.6*kn,sims:top.map(t=>({title:t.v.title,score:t.v.score,s:t.s}))};
+}
+function calibrate(prof){
+  const rated=activeRatings(prof.kind);const n=rated.length;
+  prof.cal={a:3,b:0,T:null,auc:null,n};
+  if(n<8)return;
+  const sc=rated.map(r=>r.score).sort((x,y)=>x-y);
+  const T=sc[Math.floor(n*0.65)];
+  const data=rated.map(r=>({z:predictZ(r,prof,String(r.key)).z,y:r.score>=T?1:0}));
+  const pos=data.filter(d=>d.y).length,neg=n-pos;
+  if(pos<3||neg<3)return;
+  let a=1,b=Math.log(pos/neg);
+  for(let it=0;it<40;it++){
+    let ga=0,gb=0,haa=1e-3,hab=0,hbb=1e-3;
+    data.forEach(d=>{const p=1/(1+Math.exp(-(a*d.z+b)));const q=p*(1-p);
+      ga+=(p-d.y)*d.z;gb+=(p-d.y);haa+=q*d.z*d.z;hab+=q*d.z;hbb+=q});
+    const det=haa*hbb-hab*hab;if(Math.abs(det)<1e-12)break;
+    const da=(hbb*ga-hab*gb)/det,db_=(haa*gb-hab*ga)/det;
+    a-=da;b-=db_;a=Math.max(0.5,Math.min(40,a));
+  }
+  let win=0;data.filter(d=>d.y).forEach(p=>data.filter(d=>!d.y).forEach(q=>{win+=p.z>q.z?1:p.z===q.z?.5:0}));
+  prof.cal={a,b,T,auc:win/(pos*neg),n};
+}
+function recommend(it,prof){
+  const f=feats(it);if(!f.length||prof.n<3)return{match:null,reasons:[],cons:[],sims:[]};
+  const pr=predictZ(it,prof,null);
+  let z=pr.z;if(it.avg)z+=(it.avg-7.5)/10;      // TMDBの平均(10点満点)を少しだけ加味
+  const cl=prof.cal||{a:3,b:0};
+  const match=Math.round(100/(1+Math.exp(-(cl.a*z+cl.b))));
+  const contrib=[];f.forEach(([k,w])=>{const e=prof.w[k];if(e)contrib.push([k,e.weight*w])});
+  const label=k=>k.slice(2);
+  const reasons=contrib.filter(c=>c[1]>0.15).sort((x,y)=>y[1]-x[1]).slice(0,3).map(c=>label(c[0]));
+  const cons=contrib.filter(c=>c[1]<-0.15).sort((x,y)=>x[1]-y[1]).slice(0,2).map(c=>label(c[0]));
+  return{match,reasons,cons,sims:pr.sims};
+}
+
+/* =============== data ops =============== */
+function itemByKey(key){
+  if(metaCache.has(key))return metaCache.get(key);
+  const r=db.ratings[key];
+  if(!r)return null;
+  const kind=kindOf(key);
+  return{key,kind,tmdb:r.tmdb||null,title:r.title||'(無題)',orig:r.orig||'',cover:r.cover||'',genres:r.genres||[],tags:r.tags||[],avg:null,votes:0,pop:0,desc:'',
+    date:r.date||'',year:r.year||null,url:r.tmdb?`https://www.themoviedb.org/${kind==='tv'?'tv':'movie'}/${r.tmdb}`:''};
+}
+function snapshot(it){return{kind:it.kind,tmdb:it.tmdb||null,title:it.title,orig:it.orig||'',cover:it.cover||'',genres:it.genres||[],tags:it.tags||[],
+  date:it.date||'',year:it.year||null,season:it.kind==='tv'?courOf(it.date):''}}
+function upsert(it,patch){
+  const old=db.ratings[it.key];
+  const live=(old&&!old.deleted)?old:null;
+  const wasWatched=!!(live&&(live.watched||live.score>0));
+  const cur=Object.assign({score:0,memo:'',watched:false,fav:false,want:false,dropped:false},snapshot(it),live||{},patch);
+  if(cur.score>0)cur.watched=true;
+  if(patch.dropped===undefined&&patch.score!==undefined)cur.dropped=!!(cur.dropped&&cur.score>=1&&cur.score<=5);
+  if(cur.watched&&!wasWatched&&patch.want===undefined)cur.want=false; // 見たら「気になる」は自動で外す
+  cur.rated_at=cur.rated_at||nowIso();cur.updated_at=nowIso();
+  if(!(cur.score>0)&&!cur.watched&&!cur.fav&&!cur.want&&!cur.memo){
+    if(old)db.ratings[it.key]={...old,deleted:true,updated_at:nowIso()};
+  }else db.ratings[it.key]=cur;
+  save();
+}
+function delRating(key){const r=db.ratings[key];if(!r)return;db.ratings[key]={...r,deleted:true,updated_at:nowIso()};save()}
+// TMDBに無い作品を手動で足す
+function manualItem(kind,title){
+  const key=kind+':m'+Date.now().toString(36);
+  const it={key,kind,tmdb:null,title,orig:'',cover:'',genres:[],tags:[],gids:[],avg:null,votes:0,pop:0,desc:'',date:'',year:null,url:''};
+  metaCache.set(key,it);return it;
+}
+function mergeDb(a,b){
+  const out=emptyDb();
+  const pick=(x,y,key)=>{const r={};new Set([...Object.keys(x||{}),...Object.keys(y||{})]).forEach(id=>{
+    const p=x&&x[id],q=y&&y[id];if(!p)r[id]=q;else if(!q)r[id]=p;else r[id]=((p[key]||'')>=(q[key]||''))?p:q});return r};
+  out.ratings=pick(a.ratings,b.ratings,'updated_at');
+  out.streaming_override=pick(a.streaming_override,b.streaming_override,'updated_at');
+  out.streaming_cache=pick(a.streaming_cache,b.streaming_cache,'checked_at');
+  out.updated_at=nowIso();return out;
+}
+function exportObj(){
+  return{_readme:'Movie & Drama rating DB / 映画・ドラマ評価データ。ratings[キー]: キーは "tv:<TMDB ID>"(ドラマ) か "mv:<TMDB ID>"(映画)、TMDBに無い作品は "tv:m…"/"mv:m…"(手動追加)。score=1-10(10が最高、0は未評価。7=完走/8=面白い/9=かなり面白い/10=神、4=途中で切った), memo=一言メモ, watched=視聴済み, fav=お気に入り, want=気になる(今後みたい), dropped=途中でやめた(score=4前後で記録), genres/tags=評価時点の作品特徴(tagsは映画の公開年代), season=ドラマの放送クール(YYYY-SEASON), date=放送開始日/公開日。streaming_override=ユーザーが手で直した日本のPrime Video/Netflix配信有無, streaming_cache=自動取得結果(TMDB/JustWatch。others=その他の配信先)。このJSONからユーザーの好みを分析し、映画・ドラマを推薦してください。',
+    schema_version:1,updated_at:db.updated_at,ratings:db.ratings,streaming_override:db.streaming_override,streaming_cache:db.streaming_cache};
+}
+function downloadJson(){
+  const blob=new Blob([JSON.stringify(exportObj(),null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='eiga-drama-db.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+function importJson(text){
+  const j=JSON.parse(text);
+  if(!j||typeof j.ratings!=='object')throw new Error('eiga-drama-db.json の形式ではありません');
+  db=mergeDb(db,{ratings:j.ratings||{},streaming_override:j.streaming_override||{},streaming_cache:j.streaming_cache||{}});
+  save();
+}
+
+/* =============== Google Drive sync =============== */
+let settingsFileId=null;
+let gToken=null,gExp=0,gClient=null,driveFileId=null,syncState=settings.drive_linked?'need':'off',syncTimer=null,syncing=false;
+const G_SCOPE='https://www.googleapis.com/auth/drive.file';
+const G_REDIR=location.origin+location.pathname.replace(/index\.html$/,'');
+const G_TOKKEY='eiga_gauth_tok:'+G_REDIR;
+/* 認証はポップアップではなくページ遷移（リダイレクト）方式。Sleipnir等のアプリ内ブラウザでも動く */
+/* スマホのブラウザはタブ再読込・別タブ復帰で sessionStorage が消えることがあるため、localStorage を優先して保存する */
+const gSt={
+  get(k){try{const v=localStorage.getItem(k);if(v!=null)return v}catch(e){}try{return sessionStorage.getItem(k)}catch(e){return null}},
+  set(k,v){try{localStorage.setItem(k,v)}catch(e){}try{sessionStorage.setItem(k,v)}catch(e){}},
+  del(k){try{localStorage.removeItem(k)}catch(e){}try{sessionStorage.removeItem(k)}catch(e){}}
+};
+let gAuthMsg='';
+(function(){
+  try{
+    if(/access_token=|error=/.test(location.hash)){
+      const p=new URLSearchParams(location.hash.slice(1));
+      const saved=gSt.get('eiga_gauth_state');
+      if(p.get('state')&&saved&&p.get('state')===saved){
+        if(p.get('access_token'))gSt.set(G_TOKKEY,JSON.stringify({t:p.get('access_token'),e:Date.now()+(+p.get('expires_in')||3600)*1000}));
+        else if(p.get('error')&&!/login_required|interaction_required|consent_required|account_selection_required/.test(p.get('error')))gAuthMsg='Google認証が完了しませんでした ('+p.get('error')+')';
+      }else{
+        gAuthMsg='Google認証の戻り情報を確認できませんでした。もう一度「☁ 要再接続」を押してください';
+      }
+      gSt.del('eiga_gauth_state');
+      history.replaceState(null,'',location.pathname+location.search);
+    }
+    const s=JSON.parse(gSt.get(G_TOKKEY)||'null');
+    if(s&&s.e>Date.now()){gToken=s.t;gExp=s.e}else if(s)gSt.del(G_TOKKEY);
+  }catch(e){}
+})();
+function gRedirect(prompt){
+  const st=Math.random().toString(36).slice(2)+Date.now().toString(36);
+  gSt.set('eiga_gauth_state',st);
+  const q=new URLSearchParams({client_id:settings.google_client_id.trim(),redirect_uri:G_REDIR,response_type:'token',scope:G_SCOPE,state:st,include_granted_scopes:'true'});
+  if(prompt)q.set('prompt',prompt);
+  location.href='https://accounts.google.com/o/oauth2/v2/auth?'+q.toString();
+  return new Promise(()=>{});   // 遷移するので戻らない
+}
+async function driveAuth(interactive){
+  if(!settings.google_client_id.trim())throw new Error('Google クライアントIDが未設定です（設定タブ）');
+  if(interactive)return gRedirect('');
+  throw new Error('再接続が必要です');
+}
+/* 起動時：トークンがあれば同期、無ければ1回だけ無言で再認証を試す（ループ防止つき） */
+function gStartup(){
+  if(gAuthMsg){const m=gAuthMsg;gAuthMsg='';setTimeout(()=>toast(m,6000),400)}
+  if(!settings.google_client_id)return;
+  if(gToken){driveSync(false);return}
+  if(!settings.drive_linked)return;
+  const last=+gSt.get('eiga_gauth_silent')||0;
+  if(Date.now()-last<300000){setSync('need');return}
+  gSt.set('eiga_gauth_silent',String(Date.now()));
+  gRedirect('none');
+}
+window.addEventListener('pageshow',e=>{if(e.persisted){syncing=false;setSync('need')}});
+const gFetch=(url,opt={})=>fetch(url,{...opt,headers:{...(opt.headers||{}),Authorization:'Bearer '+gToken}});
+async function driveFind(name){
+  const q=encodeURIComponent(`name='${name}' and trashed=false`);
+  const r=await gFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)&orderBy=${encodeURIComponent('modifiedTime desc')}&pageSize=1`);
+  if(!r.ok)throw new Error('Drive検索に失敗 ('+r.status+')');
+  const j=await r.json();return(j.files&&j.files[0]&&j.files[0].id)||null;
+}
+async function driveWriteJson(name,id,obj){
+  const body=JSON.stringify(obj,null,1);
+  if(id){
+    const r=await gFetch(`https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media`,{method:'PATCH',headers:{'Content-Type':'application/json'},body});
+    if(!r.ok)throw new Error('Drive保存に失敗 ('+r.status+')');
+    return id;
+  }
+  const b='eigadb'+Date.now();
+  const meta=JSON.stringify({name,mimeType:'application/json'});
+  const mp=`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${body}\r\n--${b}--`;
+  const r=await gFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+b},body:mp});
+  if(!r.ok)throw new Error('Drive作成に失敗 ('+r.status+')');
+  return (await r.json()).id;
+}
+// TMDBキーは評価データとは別ファイル（eiga-drama-techo-settings.json）でDriveに保存して端末間で共有する。
+// 初回でキーが無ければ、アニメ手帖（同じOAuthクライアント）が保存した anime-techo-settings.json から引き継ぐ
+async function readDriveJson(id){
+  const r=await gFetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`);
+  return r.ok?await r.json().catch(()=>null):null;
+}
+async function syncSettingsFile(){
+  const name='eiga-drama-techo-settings.json';
+  if(!settingsFileId)settingsFileId=await driveFind(name);
+  let remote=settingsFileId?await readDriveJson(settingsFileId):null;
+  const local=(settings.tmdb_key||'').trim();
+  const rk=((remote&&remote.tmdb_key)||'').trim();
+  if(!local&&!rk){
+    try{
+      const aid=await driveFind('anime-techo-settings.json');
+      const a=aid?await readDriveJson(aid):null;
+      const ak=((a&&a.tmdb_key)||'').trim();
+      if(ak){settings.tmdb_key=ak;settings.tmdb_key_at=nowIso();saveSettings();toast('TMDBキーをアニメ手帖から引き継ぎました');
+        settingsFileId=await driveWriteJson(name,settingsFileId,{_readme:'映画ドラマ手帖の設定（Drive同期用）。TMDB APIキーが入っています。他人やAIに渡さないでください。',tmdb_key:ak,updated_at:settings.tmdb_key_at});
+        ui.error='';ui.mvError='';return}
+    }catch(e){console.warn('anime key import',e)}
+  }
+  if(rk&&(!local||(rk!==local&&(settings.tmdb_key_at||'')<=(remote.updated_at||'')))){
+    settings.tmdb_key=rk;settings.tmdb_key_at=remote.updated_at||nowIso();saveSettings();
+    toast('TMDBキーをDriveから読み込みました');ui.error='';ui.mvError='';
+  }else if(local&&rk!==local){
+    const at=settings.tmdb_key_at||nowIso();settings.tmdb_key_at=at;saveSettings();
+    settingsFileId=await driveWriteJson(name,settingsFileId,{_readme:'映画ドラマ手帖の設定（Drive同期用）。TMDB APIキーが入っています。他人やAIに渡さないでください。',tmdb_key:local,updated_at:at});
+  }
+}
+
+async function driveSync(interactive){
+  if(syncing)return;syncing=true;setSync('busy');let syncChanged=false;
+  try{
+    if(!gToken||Date.now()>gExp-60000)await driveAuth(interactive);
+    let id=driveFileId;
+    if(!id){
+      const q=encodeURIComponent("name='eiga-drama-db.json' and trashed=false");
+      const r=await gFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)&orderBy=${encodeURIComponent('modifiedTime desc')}&pageSize=1`);
+      if(!r.ok)throw new Error('Drive検索に失敗 ('+r.status+')。Drive APIが有効か確認してください');
+      const j=await r.json();id=j.files&&j.files[0]&&j.files[0].id;
+    }
+    if(id){
+      const r=await gFetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`);
+      if(r.ok){const sig0=JSON.stringify(db.ratings);const remote=await r.json();db=mergeDb(db,{ratings:remote.ratings||{},streaming_override:remote.streaming_override||{},streaming_cache:remote.streaming_cache||{}});saveLocal();if(JSON.stringify(db.ratings)!==sig0)syncChanged=true}
+    }
+    const body=JSON.stringify(exportObj(),null,1);
+    if(id){
+      const r=await gFetch(`https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media`,{method:'PATCH',headers:{'Content-Type':'application/json'},body});
+      if(!r.ok)throw new Error('Drive保存に失敗 ('+r.status+')');
+    }else{
+      const b='eigadb'+Date.now();
+      const meta=JSON.stringify({name:'eiga-drama-db.json',mimeType:'application/json'});
+      const mp=`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${body}\r\n--${b}--`;
+      const r=await gFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+b},body:mp});
+      if(!r.ok)throw new Error('Drive作成に失敗 ('+r.status+')');
+      id=(await r.json()).id;
+    }
+    try{await syncSettingsFile()}catch(e){console.warn('settings sync',e)}
+    driveFileId=id;settings.drive_linked=true;saveSettings();setSync('ok');
+    if(syncChanged&&ui.tab!=='settings')render();
+    return true;
+  }catch(e){setSync(interactive?'bad':'need');if(interactive)toast(e.message,5000);console.warn(e);return false}
+  finally{syncing=false}
+}
+function scheduleSync(){
+  if(!settings.drive_linked)return;
+  setSync('dirty');clearTimeout(syncTimer);
+  syncTimer=setTimeout(()=>{
+    if(gToken&&Date.now()<gExp-60000)driveSync(false);else setSync('need');
+  },2500);
+}
+function setSync(s){
+  syncState=s;const c=$('#syncChip');
+  const map={off:['☁ Drive未連携',''],need:['☁ 要再接続（クリック）','bad'],ok:['☁ 同期済み','ok'],dirty:['☁ 未同期…','bad'],busy:['☁ 同期中…',''],bad:['☁ 同期エラー（クリック）','bad']};
+  const [t,cls]=map[s]||map.off;c.textContent=t;c.className='chip '+cls;
+}
+$('#syncChip').onclick=()=>{
+  if(!settings.google_client_id){ui.tab='settings';render();return}
+  driveSync(true);
+};
+
+
+/* =============== rendering helpers =============== */
+const TABS=[['drama','ドラマ'],['movie','映画'],['mine','マイ評価'],['taste','好み分析'],['settings','設定']];
+function renderNav(){
+  $('#nav').innerHTML=TABS.map(([k,l])=>`<button data-tab="${k}" class="${ui.tab===k?'on':''}">${l}</button>`).join('');
+}
+$('#nav').onclick=e=>{const b=e.target.closest('button');if(!b)return;ui.tab=b.dataset.tab;render()};
+function render(){
+  renderNav();setSync(syncState);
+  const m=$('#main');
+  if(ui.tab==='drama')renderDrama(m);
+  else if(ui.tab==='movie')renderMovie(m);
+  else if(ui.tab==='mine')renderMine(m);
+  else if(ui.tab==='taste')renderTaste(m);
+  else renderSettings(m);
+}
+function afterStream(){
+  if(ui.tab==='drama'){if(ui.svc==='all')patchBadges();else renderDramaGrid();updateStreamNote()}
+  else if(ui.tab==='movie'){if(ui.mvSvc==='all'||ui.mvResults)patchBadges();else renderMovieList();updateStreamNote()}
+  else if(ui.tab==='mine')patchBadges();
+}
+function patchBadges(){document.querySelectorAll('.card.item').forEach(c=>{const bd=c.querySelector('.bd');if(bd)bd.innerHTML=badgesHtml(c.dataset.key)})}
+function updateStreamNote(){
+  const n=$('#streamNote');if(!n)return;
+  if(!(settings.tmdb_key||'').trim())n.textContent='※TMDBキーを設定すると作品情報・配信バッジが表示されます';
+  else n.innerHTML=ui.streamBusy>0?`<span class="spin"></span>配信情報を確認中（残り${ui.streamBusy}）`:'';
+}
+// 配信サービスの検索リンク（TMDBは作品ページのURLを持たないので、サービス内で作品名検索）
+function svcUrl(key,k){
+  const it=itemByKey(key)||{};const q=encodeURIComponent(it.title||'');
+  return k==='netflix'?'https://www.netflix.com/search?q='+q:'https://www.amazon.co.jp/s?k='+q+'&i=instant-video';
+}
+function badgesHtml(key){
+  const s=streamOf(key);let h='';
+  const one=(k,label,cls)=>{if(s[k].v===true)h+=`<a class="badge ${cls}" href="${esc(svcUrl(key,k))}" target="_blank" rel="noopener" title="${label}で開く">${label}</a>`};
+  one('prime','Prime','prime');one('netflix','Netflix','netflix');
+  s.others.slice(0,3).forEach(n=>{h+=`<span class="badge other" title="日本の配信（見放題・無料）">${esc(n)}</span>`});
+  if(!h&&db.streaming_cache[key]&&db.streaming_cache[key].source==='tmdb')h='<span class="badge none" title="日本の見放題・無料配信が見つかりません（TMDB/JustWatch）">配信なし</span>';
+  return h;
+}
+function avgChip(it){
+  if(!it.avg)return'';
+  const cls=it.avg>=8?'hi':it.avg>=7?'mid':'';
+  return`<span class="avg ${cls}" title="TMDBの平均評価（${it.votes}件）">★${it.avg.toFixed(1)}<small>平均</small></span>`;
+}
+const simsTxt=rc=>rc&&rc.sims&&rc.sims.length?'　似てる: '+esc(rc.sims.slice(0,2).map(x=>(x.title.length>14?x.title.slice(0,14)+'…':x.title)+'('+(x.score||'♥')+')').join('・')):'';
+
+/* ---- quick controls (一覧上のワンクリック評価) ---- */
+const SCORE_HINT={1:'1点',2:'2点',3:'3点',4:'4点（切った）',5:'5点',6:'6点',7:'7点（完走）',8:'8点（面白い）',9:'9点（かなり面白い）',10:'10点（神）'};
+function ctrlHtml(key){
+  const r=db.ratings[key],ok=r&&!r.deleted,sc=ok?(r.score||0):0;
+  return`<div class="qc" data-key="${esc(key)}"><div class="sbs">${Array.from({length:10},(_,i)=>`<button class="sb ${sc===i+1?'on':''}" data-s="${i+1}" title="${SCORE_HINT[i+1]}（もう一度押すと解除）">${i+1}</button>`).join('')}</div><div class="r2"><button class="qb q ${isWant(key)?'on':''}" data-a="q" title="今後みたい（気になる）">☆ 気になる</button><button class="qb w ${isWatched(key)?'on':''}" data-a="w" title="視聴済み">✓ 視聴済み</button><button class="qb f ${isFav(key)?'on':''}" data-a="f" title="お気に入り">♥ お気に入り</button><button class="qb d ${isDropped(key)?'on':''}" data-a="d" title="途中でやめた（4点として記録）">✗ 切った</button></div><input class="qm" maxlength="140" placeholder="一言メモ（Enterで保存）" value="${esc(ok?r.memo:'')}"></div>`;
+}
+function refreshCard(card,key){
+  if(!card)return;
+  const r=db.ratings[key],ok=r&&!r.deleted,sc=ok?(r.score||0):0;
+  const cov=card.querySelector('.cover');let s=cov.querySelector('.score');
+  if(sc>0){if(!s){s=document.createElement('span');s.className='score';cov.prepend(s)}s.textContent=sc;const m=cov.querySelector('.match');if(m)m.remove()}
+  else if(s)s.remove();
+  const q=card.querySelector('.qc');
+  q.querySelectorAll('.sb').forEach(x=>x.classList.toggle('on',+x.dataset.s===sc));
+  q.querySelector('.qb.w').classList.toggle('on',isWatched(key));
+  q.querySelector('.qb.q').classList.toggle('on',isWant(key));
+  q.querySelector('.qb.d').classList.toggle('on',isDropped(key));
+  q.querySelector('.qb.f').classList.toggle('on',isFav(key));
+}
+function gridClick(e){
+  const q=e.target.closest('.qc');if(!q)return false;
+  const b=e.target.closest('.qb,.sb');if(!b)return true;
+  const key=q.dataset.key,it=itemByKey(key);if(!it)return true;
+  if(b.classList.contains('sb')){
+    const s=+b.dataset.s;upsert(it,{score:(isRated(key)&&db.ratings[key].score===s)?0:s});
+  }else if(b.dataset.a==='d'){
+    if(isDropped(key)){const sc0=db.ratings[key].score;upsert(it,{dropped:false,score:sc0===4?0:sc0})}
+    else{const cur=isRated(key)?db.ratings[key].score:0;upsert(it,{dropped:true,score:(cur>=1&&cur<=5)?cur:4})}
+  }else if(b.dataset.a==='q'){
+    if(isWatched(key)){toast('視聴済みの作品です（「気になる」は未視聴の作品用）');return true}
+    upsert(it,{want:!isWant(key)});
+  }else if(b.dataset.a==='w'){
+    if(isRated(key)){toast('評価済みの作品は視聴済みです');return true}
+    upsert(it,{watched:!isWatched(key)});
+  }else upsert(it,{fav:!isFav(key)});
+  refreshCard(q.closest('.card'),key);
+  if(!db.streaming_cache[key]&&it.tmdb)queueStreaming([it]);
+  return true;
+}
+function gridChange(e){
+  const q=e.target.closest('.qc');if(!q)return;
+  const key=q.dataset.key,it=itemByKey(key);if(!it)return;
+  if(e.target.classList.contains('qm'))upsert(it,{memo:e.target.value.trim()});
+  refreshCard(q.closest('.card'),key);
+}
+function bindGrid(el){
+  el.onclick=e=>{
+    if(e.target.closest('a.badge'))return;
+    if(gridClick(e))return;
+    if(!e.target.closest('.cover,.ctitle'))return;
+    const c=e.target.closest('.card');if(c)openModal(c.dataset.key);
+  };
+  el.onchange=gridChange;
+}
+function cardHtml(it,rc,showMatch){
+  const r=db.ratings[it.key],rated=isRated(it.key);
+  const when=it.kind==='tv'?(it.date?it.date.slice(5).replace('-','/')+'〜':''):(it.year?it.year+'年':'');
+  const meta=[when,it.genres.slice(0,3).join(' / '),it.cont?'継続・続編':''].filter(Boolean).join(' ・ ');
+  const noimg=it.cover?'':`<span class="noimg">${esc(it.title.slice(0,8))}</span>`;
+  return`<div class="card item" data-key="${esc(it.key)}">
+    <div class="cover" style="${it.cover?`background-image:url('${esc(it.cover)}')`:''}">${rated?`<span class="score">${r.score}</span>`:''}${noimg}</div>
+    <div class="cbody">
+      <div class="trow"><div class="ctitle">${esc(it.title)}</div>${avgChip(it)}</div>
+      <div class="meta">${esc(meta)}</div>
+      <div class="bd">${badgesHtml(it.key)}</div>
+      ${showMatch&&rc&&rc.match!=null&&!rated?`<div class="reason">相性 ${rc.match}%${simsTxt(rc)}${rc.reasons.length?'　◎ '+esc(rc.reasons.join('・')):''}</div>`:''}
+      ${it.desc?`<div class="ovw">${esc(it.desc)}</div>`:''}
+      ${ctrlHtml(it.key)}
+    </div></div>`;
+}
+// 入力中のフォーカスを失わないように、再描画前後で一言メモの入力を復元する
+function withKeepFocus(gridSel,fn){
+  const g=$(gridSel);let keep=null;const ae=document.activeElement;
+  if(g&&ae&&ae.classList&&ae.classList.contains('qm')&&g.contains(ae))keep={key:ae.closest('.qc').dataset.key,v:ae.value,s:ae.selectionStart};
+  fn();
+  if(keep&&g){const inp=[...g.querySelectorAll('.qc')].find(x=>x.dataset.key===keep.key);const i2=inp&&inp.querySelector('.qm');if(i2){i2.value=keep.v;i2.focus();try{i2.setSelectionRange(keep.s,keep.s)}catch(e){}}}
+}
+function errPanel(msg){
+  const needSet=/未設定|無効/.test(msg);
+  return`<div class="panel" style="border-color:#6b2a35">${esc(msg)}${needSet?'<div style="margin-top:8px"><button class="btn pri" id="toSettings">設定を開く</button></div>':''}</div>`;
+}
+function bindErr(){const b=$('#toSettings');if(b)b.onclick=()=>{ui.tab='settings';render()}}
+
+/* ---- drama tab ---- */
+function renderDrama(m){
+  ui.resort=true;
+  const years=[];for(let y=S0.year+1;y>=2000;y--)years.push(y);
+  m.innerHTML=`
+  <div class="stick">
+  <div class="toolbar">
+    <select id="selY">${years.map(y=>`<option ${y===ui.year?'selected':''}>${y}</option>`).join('')}</select>
+    <select id="selS">${SEASONS.map(([k,l])=>`<option value="${k}" ${k===ui.season?'selected':''}>${l}</option>`).join('')}</select>
+    <input type="text" id="q" placeholder="ドラマ名で検索（海外ドラマも可）" value="${esc(ui.query)}">
+    <button class="btn pri" id="goSearch">検索</button>
+    ${ui.dSearch?'<button class="btn" id="backCour">クール表示に戻る</button>':''}
+  </div>
+  <div class="toolbar">
+    <select id="selSort">
+      <option value="auto" ${ui.sort==='auto'?'selected':''}>並び: おすすめ順</option>
+      <option value="pop" ${ui.sort==='pop'?'selected':''}>並び: 人気順</option>
+      <option value="avg" ${ui.sort==='avg'?'selected':''}>並び: 平均評価順</option>
+      <option value="date" ${ui.sort==='date'?'selected':''}>並び: 放送開始が早い順</option>
+    </select>
+    <select id="selSvc">
+      <option value="all" ${ui.svc==='all'?'selected':''}>配信: すべて</option>
+      <option value="prime" ${ui.svc==='prime'?'selected':''}>Prime Videoで見放題</option>
+      <option value="netflix" ${ui.svc==='netflix'?'selected':''}>Netflixで見放題</option>
+      <option value="either" ${ui.svc==='either'?'selected':''}>どちらかで見放題</option>
+    </select>
+    <select id="selState">
+      <option value="all" ${ui.state==='all'?'selected':''}>状態: すべて</option>
+      <option value="unwatched" ${ui.state==='unwatched'?'selected':''}>未視聴のみ</option>
+      <option value="watched" ${ui.state==='watched'?'selected':''}>視聴済みのみ</option>
+      <option value="want" ${ui.state==='want'?'selected':''}>気になるのみ</option>
+      <option value="dropped" ${ui.state==='dropped'?'selected':''}>切ったのみ</option>
+      <option value="fav" ${ui.state==='fav'?'selected':''}>お気に入りのみ</option>
+    </select>
+    <label class="chk"><input type="checkbox" id="chkUn" ${ui.onlyUnrated?'checked':''}> 未評価のみ</label>
+    <label class="chk" title="初回放送がもっと前の続編・継続作品（相棒など）も、この期間に放送があれば表示"><input type="checkbox" id="chkCont" ${ui.cont?'checked':''}> 続編・継続作品も含む</label>
+    <button class="btn" id="reload">再読込</button>
+    <button class="btn" id="colBtn">表示: ${ui.cols}列</button>
+    <span class="hint" id="streamNote"></span>
+  </div></div>
+  <div id="note"></div>
+  <div class="grid" id="grid" style="--cols:${ui.cols}"></div>`;
+  $('#selY').onchange=e=>{ui.year=+e.target.value;loadCour()};
+  $('#selS').onchange=e=>{ui.season=e.target.value;loadCour()};
+  $('#selSort').onchange=e=>{ui.sort=e.target.value;ui.resort=true;renderDramaGrid()};
+  $('#selSvc').onchange=e=>{ui.svc=e.target.value;ui.resort=true;renderDramaGrid()};
+  $('#chkUn').onchange=e=>{ui.onlyUnrated=e.target.checked;ui.resort=true;renderDramaGrid()};
+  $('#selState').onchange=e=>{ui.state=e.target.value;ui.resort=true;renderDramaGrid()};
+  $('#chkCont').onchange=e=>{ui.cont=e.target.checked;loadCour()};
+  $('#reload').onclick=()=>loadCour(true);
+  $('#colBtn').onclick=()=>{ui.cols=ui.cols===2?1:2;$('#colBtn').textContent='表示: '+ui.cols+'列';$('#grid').style.setProperty('--cols',ui.cols)};
+  const doSearch=async()=>{
+    ui.query=$('#q').value.trim();if(!ui.query){ui.dSearch=null;renderDrama(m);return}
+    ui.loading=true;ui.error='';renderDramaGrid();
+    try{ui.dSearch=await searchTv(ui.query);queueStreaming(ui.dSearch)}catch(e){ui.error=e.message}
+    ui.loading=false;renderDrama(m);
+  };
+  $('#goSearch').onclick=doSearch;
+  $('#q').onkeydown=e=>{if(e.key==='Enter')doSearch()};
+  const bs=$('#backCour');if(bs)bs.onclick=()=>{ui.dSearch=null;ui.query='';renderDrama(m)};
+  bindGrid($('#grid'));
+  renderDramaGrid();updateStreamNote();
+  if(!ui.items.length&&!ui.dSearch&&!ui.loading&&!ui.error)loadCour();
+}
+async function loadCour(force){
+  ui.loadTok++;const tok=ui.loadTok;
+  ui.resort=true;ui.loading=true;ui.error='';ui.dSearch=null;ui.query='';ui.items=[];renderDramaGrid();
+  try{const items=await fetchCour(ui.year,ui.season,ui.cont,force);if(tok!==ui.loadTok)return;ui.items=items;queueStreaming(items)}
+  catch(e){if(tok!==ui.loadTok)return;ui.error=e.message;ui.items=[]}
+  ui.loading=false;if(ui.tab==='drama')renderDrama($('#main'));
+}
+function visibleDrama(){
+  let items=(ui.dSearch||ui.items).slice();
+  const prof=buildProfile('tv');
+  const rec=new Map(items.map(it=>[it.key,recommend(it,prof)]));
+  const resort=ui.resort;ui.resort=false;
+  const passes=it=>{
+    if(ui.onlyUnrated&&isRated(it.key))return false;
+    if(ui.state==='unwatched'&&isWatched(it.key))return false;
+    if(ui.state==='watched'&&!isWatched(it.key))return false;
+    if(ui.state==='want'&&!isWant(it.key))return false;
+    if(ui.state==='dropped'&&!isDropped(it.key))return false;
+    if(ui.state==='fav'&&!isFav(it.key))return false;
+    if(ui.svc!=='all'){
+      const s=streamOf(it.key);
+      const ok=ui.svc==='prime'?s.prime.v===true:ui.svc==='netflix'?s.netflix.v===true:(s.prime.v===true||s.netflix.v===true);
+      if(!ok)return false;
+    }
+    return true;
+  };
+  // 並びと絞り込みは「検索・条件変更・読み込み」のときだけ作り直す。評価操作や配信情報の到着では、いまの並びを保つ
+  items=items.filter(it=>(!resort&&ui.shown.has(it.key))||passes(it));
+  let cmp=null;
+  if(!ui.dSearch){
+    if(ui.sort==='auto'&&prof.n>=3)cmp=(a,b)=>rec.get(b.key).match-rec.get(a.key).match;
+    else if(ui.sort==='avg')cmp=(a,b)=>(b.avg||0)-(a.avg||0);
+    else if(ui.sort==='date')cmp=(a,b)=>(a.date||'9').localeCompare(b.date||'9');
+    else cmp=(a,b)=>b.pop-a.pop;
+  }
+  const cmpAll=(a,b)=>(a.cont?1:0)-(b.cont?1:0)||(cmp?cmp(a,b):0);
+  if(resort||!ui.rank.size){
+    items.sort(cmpAll);
+    ui.rank=new Map(items.map((it,i)=>[it.key,i]));ui.shown=new Set(items.map(it=>it.key));
+  }else{
+    const nf=items.filter(it=>!ui.rank.has(it.key)).sort(cmpAll);
+    let n=ui.rank.size;nf.forEach(it=>{ui.rank.set(it.key,n++)});
+    items.sort((a,b)=>ui.rank.get(a.key)-ui.rank.get(b.key));
+    items.forEach(it=>ui.shown.add(it.key));
+  }
+  return{items,rec,prof};
+}
+function renderDramaGrid(){withKeepFocus('#grid',renderDramaGridRaw)}
+function renderDramaGridRaw(){
+  const g=$('#grid'),note=$('#note');if(!g)return;
+  if(ui.loading){note.innerHTML='<div class="empty"><span class="spin"></span>読み込み中…</div>';g.innerHTML='';return}
+  if(ui.error){note.innerHTML=errPanel(ui.error);g.innerHTML='';bindErr();return}
+  const{items,rec,prof}=visibleDrama();
+  let msg='';
+  if(ui.dSearch){
+    msg=`<p class="hint">「${esc(ui.query)}」の検索結果 ${ui.dSearch.length}件　<button class="btn" id="manTv">「${esc(ui.query)}」をTMDBにない作品として手動で追加</button></p>`;
+  }else{
+    msg=`<p class="hint">${ui.year}年${SEASON_JA[ui.season]}ドラマ（日本・放送開始日がこの期間の作品）${items.length}件。TMDBに未登録の作品は載りません（検索 → 手動追加できます）。</p>`;
+    if(prof.n<3)msg+='<p class="hint">💡 3作品以上に評価をつけると、相性%とおすすめ順が使えるようになります。</p>';
+  }
+  note.innerHTML=msg;
+  const man=$('#manTv');if(man)man.onclick=()=>{const it=manualItem('tv',ui.query);upsert(it,{want:true});toast('手動で追加しました（気になる）');ui.dSearch=[it].concat(ui.dSearch);ui.resort=true;renderDramaGrid()};
+  g.innerHTML=items.length?items.map(it=>cardHtml(it,rec.get(it.key),prof.n>=3)).join(''):'<div class="empty" style="grid-column:1/-1">表示できる作品がありません</div>';
+}
+
+/* ---- movie tab ---- */
+function renderMovie(m){
+  m.innerHTML=`
+  <div class="stick">
+  <div class="toolbar">
+    <input type="text" id="mq" placeholder="映画のタイトルで検索して追加（日本語・英語）" value="${esc(ui.mvQuery)}">
+    <input type="number" id="myr" placeholder="公開年(任意)" value="${esc(ui.mvYear)}" style="width:120px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px">
+    <button class="btn pri" id="mGo">検索</button>
+    ${ui.mvResults?'<button class="btn" id="mBack">自分の映画リストに戻る</button>':''}
+  </div>
+  <div class="toolbar" id="mTools" ${ui.mvResults?'hidden':''}>
+    <select id="mState">
+      <option value="want" ${ui.mvState==='want'?'selected':''}>☆ 気になる（観たい）</option>
+      <option value="unwatched" ${ui.mvState==='unwatched'?'selected':''}>未視聴すべて</option>
+      <option value="watched" ${ui.mvState==='watched'?'selected':''}>✓ 視聴済み</option>
+      <option value="fav" ${ui.mvState==='fav'?'selected':''}>♥ お気に入り</option>
+      <option value="dropped" ${ui.mvState==='dropped'?'selected':''}>✗ 切った</option>
+      <option value="all" ${ui.mvState==='all'?'selected':''}>すべて</option>
+    </select>
+    <select id="mSvc">
+      <option value="all" ${ui.mvSvc==='all'?'selected':''}>配信: すべて</option>
+      <option value="prime" ${ui.mvSvc==='prime'?'selected':''}>Prime Videoで見放題</option>
+      <option value="netflix" ${ui.mvSvc==='netflix'?'selected':''}>Netflixで見放題</option>
+      <option value="either" ${ui.mvSvc==='either'?'selected':''}>どちらかで見放題</option>
+    </select>
+    <select id="mSort">
+      <option value="new" ${ui.mvSort==='new'?'selected':''}>並び: 追加が新しい順</option>
+      <option value="match" ${ui.mvSort==='match'?'selected':''}>並び: 相性順</option>
+      <option value="high" ${ui.mvSort==='high'?'selected':''}>並び: 高評価順</option>
+      <option value="year" ${ui.mvSort==='year'?'selected':''}>並び: 公開年が新しい順</option>
+    </select>
+    <button class="btn" id="colBtn">表示: ${ui.cols}列</button>
+    <span class="hint" id="streamNote"></span>
+  </div></div>
+  <div id="note"></div>
+  <div class="grid" id="vgrid" style="--cols:${ui.cols}"></div>`;
+  const go=async()=>{
+    ui.mvQuery=$('#mq').value.trim();ui.mvYear=$('#myr').value.trim();
+    if(!ui.mvQuery){ui.mvResults=null;ui.mvError='';renderMovie(m);return}
+    ui.mvLoading=true;ui.mvError='';renderMovieList();
+    try{ui.mvResults=await searchMovies(ui.mvQuery,ui.mvYear);queueStreaming(ui.mvResults)}catch(e){ui.mvError=e.message}
+    ui.mvLoading=false;renderMovie(m);
+  };
+  $('#mGo').onclick=go;
+  $('#mq').onkeydown=e=>{if(e.key==='Enter')go()};
+  $('#myr').onkeydown=e=>{if(e.key==='Enter')go()};
+  const bk=$('#mBack');if(bk)bk.onclick=()=>{ui.mvResults=null;ui.mvQuery='';ui.mvYear='';ui.mvError='';renderMovie(m)};
+  $('#mState').onchange=e=>{ui.mvState=e.target.value;renderMovieList()};
+  $('#mSvc').onchange=e=>{ui.mvSvc=e.target.value;renderMovieList()};
+  $('#mSort').onchange=e=>{ui.mvSort=e.target.value;renderMovieList()};
+  $('#colBtn').onclick=()=>{ui.cols=ui.cols===2?1:2;$('#colBtn').textContent='表示: '+ui.cols+'列';$('#vgrid').style.setProperty('--cols',ui.cols)};
+  bindGrid($('#vgrid'));
+  renderMovieList();updateStreamNote();
+  if(!ui.mvResults)queueStreaming(movieListItems());
+}
+function movieListItems(){
+  let rs=entries('mv').filter(r=>{
+    const k=r.key;
+    if(ui.mvState==='want'&&!r.want)return false;
+    if(ui.mvState==='unwatched'&&isWatched(k))return false;
+    if(ui.mvState==='watched'&&!isWatched(k))return false;
+    if(ui.mvState==='fav'&&!r.fav)return false;
+    if(ui.mvState==='dropped'&&!isDropped(k))return false;
+    if(ui.mvSvc!=='all'){
+      const s=streamOf(k);
+      const ok=ui.mvSvc==='prime'?s.prime.v===true:ui.mvSvc==='netflix'?s.netflix.v===true:(s.prime.v===true||s.netflix.v===true);
+      if(!ok)return false;
+    }
+    return true;
+  });
+  const prof=buildProfile('mv');
+  const mt=r=>{const it=itemByKey(r.key);return it?(recommend(it,prof).match||0):0};
+  if(ui.mvSort==='high')rs.sort((a,b)=>b.score-a.score||(b.updated_at||'').localeCompare(a.updated_at||''));
+  else if(ui.mvSort==='year')rs.sort((a,b)=>(b.year||0)-(a.year||0));
+  else if(ui.mvSort==='match')rs.sort((a,b)=>mt(b)-mt(a));
+  else rs.sort((a,b)=>(b.rated_at||'').localeCompare(a.rated_at||''));
+  return rs.map(r=>itemByKey(r.key)).filter(Boolean);
+}
+function renderMovieList(){withKeepFocus('#vgrid',renderMovieListRaw)}
+function renderMovieListRaw(){
+  const g=$('#vgrid'),note=$('#note');if(!g)return;
+  if(ui.mvLoading){note.innerHTML='<div class="empty"><span class="spin"></span>検索中…</div>';g.innerHTML='';return}
+  if(ui.mvError){note.innerHTML=errPanel(ui.mvError);g.innerHTML='';bindErr();return}
+  const prof=buildProfile('mv');
+  if(ui.mvResults){
+    note.innerHTML=`<p class="hint">「${esc(ui.mvQuery)}」の検索結果 ${ui.mvResults.length}件。<b>☆ 気になる</b>を押すと自分のリストに入ります。　<button class="btn" id="manMv">「${esc(ui.mvQuery)}」をTMDBにない作品として手動で追加</button></p>`;
+    const man=$('#manMv');if(man)man.onclick=()=>{const it=manualItem('mv',ui.mvQuery);upsert(it,{want:true});toast('手動で追加しました（気になる）');ui.mvResults=[it].concat(ui.mvResults);renderMovieList()};
+    g.innerHTML=ui.mvResults.length?ui.mvResults.map(it=>cardHtml(it,recommend(it,prof),prof.n>=3)).join(''):'<div class="empty" style="grid-column:1/-1">見つかりませんでした。別のタイトルで検索するか、手動で追加できます。</div>';
+    return;
+  }
+  const items=movieListItems();
+  const total=entries('mv').length;
+  note.innerHTML=total?`<p class="hint">${items.length}本を表示中（登録 ${total}本）。上の検索で映画を探して追加します。</p>`:'<div class="empty">まだ映画が登録されていません。上の検索ボックスでタイトルを検索して、「☆ 気になる」で観たい映画をメモしましょう。</div>';
+  g.innerHTML=items.map(it=>cardHtml(it,recommend(it,prof),prof.n>=3)).join('');
+}
+
+/* ---- my ratings ---- */
+function mineHtml(rs){
+  const card=r=>{const it=itemByKey(r.key);return it?cardHtml(it,null,false):''};
+  if(ui.mySort!=='group')return rs.map(card).join('');
+  const g={};rs.forEach(r=>{const k=r.score>0?r.score:0;(g[k]=g[k]||[]).push(r)});
+  return Object.keys(g).map(Number).sort((a,b)=>b-a).map(k=>`<h3 class="gh">${k>0?k+'点':'評価なし（視聴済み・気になる・お気に入りのみ）'}　<span class="hint">${g[k].length}作品</span></h3>`+g[k].map(card).join('')).join('');
+}
+function renderMine(m){
+  let rs=entries(ui.mineK==='all'?null:ui.mineK).filter(r=>ui.mineF==='all'||(ui.mineF==='watched'&&(r.watched||r.score>0))||(ui.mineF==='fav'&&r.fav)||(ui.mineF==='want'&&r.want)||(ui.mineF==='dropped'&&r.dropped&&r.score>0)||(ui.mineF==='unrated'&&r.watched&&!(r.score>0)));
+  rs.sort((a,b)=>(ui.mySort==='high'||ui.mySort==='group')?b.score-a.score||(b.updated_at||'').localeCompare(a.updated_at||''):(b.updated_at||'').localeCompare(a.updated_at||''));
+  m.innerHTML=`<div class="stick"><div class="toolbar">
+    <select id="mineK"><option value="all">ドラマ＋映画</option><option value="tv" ${ui.mineK==='tv'?'selected':''}>ドラマのみ</option><option value="mv" ${ui.mineK==='mv'?'selected':''}>映画のみ</option></select>
+    <select id="mySort"><option value="group" ${ui.mySort==='group'?'selected':''}>点数別（10→1）</option><option value="new" ${ui.mySort==='new'?'selected':''}>新しい順</option><option value="high" ${ui.mySort==='high'?'selected':''}>高評価順</option></select>
+    <select id="mineF"><option value="all">すべて</option><option value="watched" ${ui.mineF==='watched'?'selected':''}>視聴済み</option><option value="want" ${ui.mineF==='want'?'selected':''}>気になる（今後みたい）</option><option value="dropped" ${ui.mineF==='dropped'?'selected':''}>切った作品</option><option value="fav" ${ui.mineF==='fav'?'selected':''}>お気に入り</option><option value="unrated" ${ui.mineF==='unrated'?'selected':''}>視聴済み・未評価</option></select>
+    <button class="btn" id="colBtn2">表示: ${ui.cols}列</button>
+    <span class="hint">${rs.length}作品</span></div></div>
+    <div class="grid" id="mgrid" style="--cols:${ui.cols}">${rs.length?mineHtml(rs):'<div class="empty" style="grid-column:1/-1">該当する作品がありません。「ドラマ」「映画」タブから評価・視聴済み・気になるを付けましょう。</div>'}</div>`;
+  $('#mineK').onchange=e=>{ui.mineK=e.target.value;renderMine(m)};
+  $('#mySort').onchange=e=>{ui.mySort=e.target.value;renderMine(m)};
+  $('#mineF').onchange=e=>{ui.mineF=e.target.value;renderMine(m)};
+  $('#colBtn2').onclick=()=>{ui.cols=ui.cols===2?1:2;$('#colBtn2').textContent='表示: '+ui.cols+'列';$('#mgrid').style.setProperty('--cols',ui.cols)};
+  bindGrid($('#mgrid'));
+  queueStreaming(rs.map(r=>itemByKey(r.key)).filter(Boolean));
+}
+
+/* ---- taste ---- */
+function renderTaste(m){
+  const kind=ui.tasteK;
+  const prof=buildProfile(kind);
+  const sel=`<div class="toolbar"><select id="tk"><option value="tv" ${kind==='tv'?'selected':''}>ドラマの好み</option><option value="mv" ${kind==='mv'?'selected':''}>映画の好み</option></select></div>`;
+  if(prof.n<3){m.innerHTML=sel+`<div class="panel"><h2>好み分析（${KIND_JA[kind]}）</h2><p class="hint">${KIND_JA[kind]}の評価が${prof.n}件です。3件以上つけると、好きな/苦手なジャンルを集計します。</p></div>`;$('#tk').onchange=e=>{ui.tasteK=e.target.value;renderTaste(m)};return}
+  const ents=Object.entries(prof.w).filter(([,e])=>e.count>=1.2).map(([k,e])=>({k,label:k.slice(2),kind:k[0]==='g'?'ジャンル':'年代',w:e.weight}));
+  const pos=ents.filter(e=>e.w>0).sort((a,b)=>b.w-a.w).slice(0,8);
+  const neg=ents.filter(e=>e.w<0).sort((a,b)=>a.w-b.w).slice(0,8);
+  const mx=Math.max(.5,...ents.map(e=>Math.abs(e.w)));
+  const bars=(arr,cls)=>arr.length?`<div class="bars">${arr.map(e=>`<div class="bar-r"><span>${esc(e.label)} <span class="hint">${e.kind}</span></span><div class="track"><div class="fill ${cls}" style="width:${Math.min(100,Math.abs(e.w)/mx*100)}%"></div></div><span class="hint">${e.w>0?'+':''}${e.w.toFixed(2)}</span></div>`).join('')}</div>`:'<p class="hint">まだ該当なし</p>';
+  const dist=Array(10).fill(0);activeRatings(kind).forEach(r=>dist[r.score-1]++);
+  const dmax=Math.max(1,...dist);
+  const pc=ui.promptCour||S0;
+  const years=[S0.year+1,S0.year,S0.year-1];
+  m.innerHTML=sel+`
+  <div class="panel"><h2>あなたの${KIND_JA[kind]}評価サマリー</h2>
+    <p>評価数 <b>${prof.n}</b> 作品 ／ 平均 <b>${prof.mean.toFixed(2)}</b></p>
+    <p class="hint">おすすめの計算では、お気に入り（♥）は高評価として強め、「気になる」は弱めの好みとして加味しています。特徴はジャンル${kind==='mv'?'と公開年代':''}のみです（脚本家・キャストは未対応）。</p>
+    ${prof.cal&&prof.cal.auc!=null?`<p class="hint">🎯 <b>予測の当たり具合</b>: あなたの${prof.cal.n}件の評価を1件ずつ隠して予測したところ、${prof.cal.T}点以上の作品を、そうでない作品より上に並べられた確率は <b>${(prof.cal.auc*100).toFixed(0)}%</b>（50%=でたらめ、100%=完璧）でした。「相性%」は「${prof.cal.T}点以上をつけそうな確率」の目安です。</p>`:''}
+    ${activeRatings(kind).filter(r=>r.score<=5).length<5?'<p class="hint">💡 6点以下の評価がほとんどないため、「苦手な傾向」を学べていません。途中で切った作品にも低めの点数をつけると、精度が上がります。</p>':''}
+    <div style="display:flex;gap:6px;align-items:flex-end;height:80px">${dist.map((c,i)=>`<div style="flex:1;text-align:center"><div style="background:var(--accent);height:${c/dmax*60}px;border-radius:4px 4px 0 0;min-height:${c?3:0}px"></div><div class="hint">${i+1}</div></div>`).join('')}</div>
+  </div>
+  <div class="two"><div class="panel"><h2>好きな傾向 👍</h2>${bars(pos,'pos')}</div><div class="panel"><h2>苦手な傾向 👎</h2>${bars(neg,'neg')}</div></div>
+  <div class="panel"><h2>他のAIに分析してもらう</h2>
+    <p class="hint">下のプロンプトをコピーして、ChatGPT・Gemini・Claudeなど好きなAIに貼り付けてください。評価データ込みなので、どのAIでも同じ分析ができます。${kind==='mv'?'候補は「気になる」に入れた未視聴の映画です（今夜の1本選び用）。':'候補は選んだクールの未視聴ドラマです。'}</p>
+    <div class="row" style="margin-bottom:8px">
+      ${kind==='tv'?`<select id="pYear">${years.map(y=>`<option ${y===pc.year?'selected':''}>${y}</option>`).join('')}</select>
+      <select id="pSeason">${SEASONS.map(([k,l])=>`<option value="${k}" ${k===pc.season?'selected':''}>${l}</option>`).join('')}</select>`:''}
+      <button class="btn pri" id="mkPrompt">プロンプトを作る</button>
+      <button class="btn" id="cpPrompt">コピー</button>
+    </div>
+    <div class="field"><textarea id="promptOut" readonly placeholder="「プロンプトを作る」を押してください"></textarea></div>
+  </div>`;
+  $('#tk').onchange=e=>{ui.tasteK=e.target.value;renderTaste(m)};
+  $('#mkPrompt').onclick=async()=>{
+    $('#promptOut').value='作成中…';
+    try{
+      if(kind==='tv'){
+        const y=+$('#pYear').value,s=$('#pSeason').value;ui.promptCour={year:y,season:s};
+        const items=await fetchCour(y,s,false,false);
+        $('#promptOut').value=buildPrompt('tv',items.filter(it=>!isWatched(it.key)),`${y}年${SEASON_JA[s]}ドラマ（日本・未視聴のみ）`,pos,neg);
+      }else{
+        const items=entries('mv').filter(r=>r.want&&!isWatched(r.key)).map(r=>itemByKey(r.key)).filter(Boolean);
+        $('#promptOut').value=buildPrompt('mv',items,'「気になる」に入れた未視聴の映画',pos,neg);
+      }
+    }catch(e){$('#promptOut').value='エラー: '+e.message}
+  };
+  $('#cpPrompt').onclick=async()=>{
+    const v=$('#promptOut').value;if(!v)return;
+    try{await navigator.clipboard.writeText(v)}catch(e){$('#promptOut').select();document.execCommand('copy')}
+    toast('コピーしました');
+  };
+}
+function buildPrompt(kind,items,label,pos,neg){
+  const rs=activeRatings(kind).map(r=>({title:r.title,score:r.score,memo:r.memo,favorite:!!r.fav,genres:r.genres,tags:r.tags}));
+  const svcTxt=k=>{const x=streamOf(k);const a=[];if(x.prime.v)a.push('Prime Video');if(x.netflix.v)a.push('Netflix');return a.concat(x.others.slice(0,2)).join('+')||'配信不明/対象外'};
+  const kj=KIND_JA[kind];
+  return`あなたは${kj}推薦のアシスタントです。以下の「私の評価データ」から好みを分析し、「候補リスト」から私に合う作品を選んでください。ネタバレは書かないでください。
+
+# 評価データの読み方
+- score は1〜10（10が最高。7=完走、8=面白い、9=かなり面白い、10=神、4前後=途中で切った）、memoは私の一言メモ。genres は作品の特徴。
+- 平均評価: ${buildProfile(kind).mean.toFixed(2)}（これより高い作品が「好き」、低い作品が「合わなかった」）
+
+# 集計済みの傾向（参考）
+- 好き: ${pos.map(e=>e.label).join('、')||'なし'}
+- 苦手: ${neg.map(e=>e.label).join('、')||'なし'}
+
+# 私の${kj}評価データ（JSON）
+${JSON.stringify(rs)}
+
+# 候補リスト（${label}）
+${items.map(it=>`- ${it.title}${it.year?'('+it.year+')':''} | ${it.genres.join('/')} | TMDB平均:${it.avg?it.avg.toFixed(1):'-'} | 配信:${svcTxt(it.key)}${isWant(it.key)?' | ★気になる(優先して検討)':''}`).join('\n')}
+
+# お願い
+1. 私の好みの特徴を3行で要約してください。
+2. 候補から、合いそうな順に5作品を選び、理由を各1〜2文で書いてください。
+3. 苦手傾向に当たりそうで注意が必要な作品があれば1〜2本挙げてください。
+4. 配信情報（Prime Video / Netflix）も添えてください（不明は不明と書く）。`;
+}
+
+/* ---- settings ---- */
+function renderSettings(m){
+  m.innerHTML=`
+  <div class="panel"><h2>☁ Google Drive 同期</h2>
+    <p class="hint">評価データを Drive の <code>eiga-drama-db.json</code> に自動保存します（このアプリが作ったファイルだけにアクセスする権限）。デバイス間で同じデータを使えます。</p>
+    <div class="field"><label>Google OAuth クライアントID（アニメ手帖と同じものを埋め込み済み）</label><input id="gcid" placeholder="xxxx.apps.googleusercontent.com" value="${esc(settings.google_client_id)}"></div>
+    <div class="row"><button class="btn pri" id="gConnect">連携 / 今すぐ同期</button>
+    ${settings.drive_linked?'<button class="btn danger" id="gOff">連携を解除</button>':''}</div>
+    <p class="hint">初回は Google Cloud の「承認済みのリダイレクトURI」にこのサイトのURL（<code>${esc(G_REDIR)}</code>）の登録が必要です。</p>
+  </div>
+  <div class="panel"><h2>🎬 作品情報・配信情報 (TMDB)</h2>
+    <div class="field"><label>TMDB APIキー（v3 APIキー、または v4 読み取りアクセストークン。アニメ手帖と同じキーでOK）</label><input id="tkey" type="password" placeholder="未設定" value="${esc(settings.tmdb_key)}"></div>
+    <div class="row"><button class="btn pri" id="tSave">保存</button><button class="btn" id="tClear">配信情報キャッシュを消して再取得</button></div>
+    <p class="hint">キーはこのブラウザに保存されます。Drive連携中は、評価データとは別のファイル <code>eiga-drama-techo-settings.json</code> にも保存されます（評価データのJSONには含まれません）。初回連携時、アニメ手帖がDriveに保存したキーが見つかれば自動で読み込みます。</p>
+  </div>
+  <div class="panel"><h2>💾 データのバックアップ</h2>
+    <div class="row"><button class="btn" id="exp">JSONを書き出す</button>
+    <label class="btn">JSONを読み込む（統合）<input type="file" id="imp" accept=".json,application/json" hidden></label></div>
+    <p class="hint">書き出したJSONはそのまま他のAIに渡せます。読み込みは「新しい方を採用」で統合されます。</p>
+  </div>`;
+  $('#tSave').onclick=()=>{settings.tmdb_key=$('#tkey').value.trim();settings.tmdb_key_at=nowIso();saveSettings();toast('保存しました');scheduleSync();ui.error='';ui.mvError=''};
+  $('#tClear').onclick=()=>{db.streaming_cache={};save();streamQueue=[];toast('キャッシュを消去しました');ui.tab='drama';render()};
+  $('#gConnect').onclick=async()=>{settings.google_client_id=$('#gcid').value.trim();saveSettings();if(await driveSync(true))toast('Driveと同期しました')};
+  const off=$('#gOff');if(off)off.onclick=()=>{settings.drive_linked=false;saveSettings();gToken=null;driveFileId=null;settingsFileId=null;setSync('off');renderSettings(m)};
+  $('#exp').onclick=downloadJson;
+  $('#imp').onchange=async e=>{const f=e.target.files[0];if(!f)return;
+    try{importJson(await f.text());toast('読み込みました');render()}catch(err){toast('読み込み失敗: '+err.message,4500)}};
+}
+
+/* ---- modal ---- */
+function openModal(key){
+  const it=itemByKey(key);if(!it)return;
+  const r=db.ratings[key];const rated=r&&!r.deleted;
+  let score=rated?(r.score||0):0;
+  const prof=buildProfile(it.kind),rc=recommend(it,prof);
+  const root=$('#modalRoot');
+  const svcBox=(k,label)=>{
+    const s=streamOf(key)[k],ov=db.streaming_override[key]||{};
+    const status=s.v===null?'未取得':s.v?'見放題あり':'なし';
+    const src=s.src==='manual'?'（手動）':s.src==='tmdb'?'（TMDB/JustWatch）':'';
+    const cur=ov[k]===true?'yes':ov[k]===false?'no':'auto';
+    return`<div class="sbox"><b>${label}</b>：${status}<span class="hint">${src}</span> <a href="${esc(svcUrl(key,k))}" target="_blank" rel="noopener" style="color:var(--accent2)">開く ↗</a>
+      <div class="field" style="margin:6px 0 0"><label>手動で上書き</label><select data-ov="${k}"><option value="auto" ${cur==='auto'?'selected':''}>自動</option><option value="yes" ${cur==='yes'?'selected':''}>見放題あり</option><option value="no" ${cur==='no'?'selected':''}>なし</option></select></div></div>`;
+  };
+  const others=streamOf(key).others;
+  root.innerHTML=`<div class="ov0" id="ov"><div class="modal">
+    <div class="mhead"><div class="mc" style="${it.cover?`background-image:url('${esc(it.cover.replace('/w185/','/w342/'))}')`:''}"></div>
+      <div style="min-width:0"><h2>${esc(it.title)}</h2>${it.avg?`<div style="margin:2px 0 8px">${avgChip(it)}</div>`:''}
+        <div class="meta">${esc([KIND_JA[it.kind],it.orig&&it.orig!==it.title?it.orig:'',it.date||''].filter(Boolean).join(' ・ '))}</div>
+        <div style="margin:8px 0">${it.genres.map(g=>`<span class="pill">${esc(g)}</span>`).join('')}${it.tags.map(t=>`<span class="pill">${esc(t)}</span>`).join('')}</div>
+        ${prof.n>=3&&rc.match!=null?`<div class="reason">相性 ${rc.match}%${simsTxt(rc)}${rc.reasons.length?'　◎ '+esc(rc.reasons.join('・')):''}${rc.cons.length?'　△ '+esc(rc.cons.join('・')):''}</div>`:''}
+        ${it.url?`<p><a href="${esc(it.url)}" target="_blank" rel="noopener" style="color:var(--accent2)">TMDBで開く ↗</a></p>`:'<p class="hint">手動で追加した作品です（TMDB情報なし）</p>'}
+      </div></div>
+    <div class="mbody">
+      <div class="desc" id="descBox"${it.desc?'':' hidden'}>${esc(it.desc)}</div>
+      <div class="hint" id="detailBox"></div>
+      <h3>あなたの評価（10段階）</h3>
+      <div class="scores" id="scores">${Array.from({length:10},(_,i)=>`<button data-s="${i+1}" title="${SCORE_HINT[i+1]}" class="${score===i+1?'on':''}">${i+1}</button>`).join('')}</div>
+      <div class="hint" style="margin:-2px 0 8px">7=完走 / 8=面白い / 9=かなり面白い / 10=神 / 4=切った</div>
+      <div class="field"><label>一言メモ</label><input id="memo" maxlength="140" placeholder="感想を一言" value="${esc(rated?r.memo:'')}"></div>
+      <div class="row" style="margin-bottom:10px"><label class="chk"><input type="checkbox" id="mQ" ${isWant(key)?'checked':''}> ☆ 気になる</label><label class="chk"><input type="checkbox" id="mD" ${isDropped(key)?'checked':''}> ✗ 切った</label><label class="chk"><input type="checkbox" id="mW" ${isWatched(key)?'checked':''}> 視聴済み</label><label class="chk"><input type="checkbox" id="mF" ${isFav(key)?'checked':''}> ♥ お気に入り</label></div>
+      <div class="row"><button class="btn pri" id="mSave">保存</button>${rated?'<button class="btn danger" id="mDel">記録を削除</button>':''}<button class="btn" id="mClose">閉じる</button></div>
+      <h3>配信状況（日本）</h3>
+      <div class="stream-row">${svcBox('prime','Prime Video')}${svcBox('netflix','Netflix')}</div>
+      ${others.length?`<p class="hint">その他の配信: ${esc(others.join('、'))}</p>`:''}
+      <p class="hint">${(settings.tmdb_key||'').trim()?(it.tmdb?'':'手動追加の作品は配信を自動取得できません。手動で設定できます。'):'TMDBキー未設定のため自動取得できません。手動で設定できます。'}</p>
+    </div></div></div>`;
+  const close=()=>{root.innerHTML='';document.removeEventListener('keydown',onKey)};
+  const onKey=e=>{if(e.key==='Escape')close()};
+  document.addEventListener('keydown',onKey);
+  $('#ov').onclick=e=>{if(e.target.id==='ov')close()};
+  $('#mClose').onclick=close;
+  $('#scores').onclick=e=>{const b=e.target.closest('button');if(!b)return;score=+b.dataset.s;[...$('#scores').children].forEach(x=>x.classList.toggle('on',+x.dataset.s===score))};
+  root.querySelectorAll('select[data-ov]').forEach(sel=>sel.onchange=()=>{
+    const ov=Object.assign({},db.streaming_override[key]||{});
+    ov[sel.dataset.ov]=sel.value==='auto'?null:sel.value==='yes';
+    ov.updated_at=nowIso();db.streaming_override[key]=ov;save();
+    toast('配信設定を保存しました');
+  });
+  $('#mSave').onclick=()=>{
+    const dr=$('#mD').checked;const sc2=(dr&&!(score>=1&&score<=5))?4:score;
+    upsert(it,{score:sc2,dropped:dr&&sc2>=1&&sc2<=5,memo:$('#memo').value.trim(),watched:$('#mW').checked||sc2>0,fav:$('#mF').checked,want:$('#mQ').checked&&!($('#mW').checked||sc2>0)});
+    toast('保存しました');close();render();
+  };
+  const del=$('#mDel');if(del)del.onclick=()=>{if(confirm('この作品の記録（評価・メモ・視聴済み・お気に入り）を削除しますか？')){delRating(key);close();render()}};
+  if(it.tmdb&&needsStream(it))queueStreaming([it]);
+  // あらすじ・キャスト・脚本/監督：開いたときに1回だけ取得（保存はしない）
+  if(it.tmdb&&(settings.tmdb_key||'').trim()){
+    loadDetail(it).then(d=>{
+      if(!d||!$('#ov'))return;
+      if(d.overview){const box=$('#descBox');box.hidden=false;box.textContent=d.overview}
+      const L=[];
+      if(d.creators&&d.creators.length)L.push('原案・制作: '+d.creators.join('、'));
+      if(d.writers&&d.writers.length)L.push('脚本: '+d.writers.join('、'));
+      if(d.directors&&d.directors.length)L.push('監督: '+d.directors.join('、'));
+      if(d.cast&&d.cast.length)L.push('出演: '+d.cast.join('、'));
+      if(d.networks&&d.networks.length)L.push('放送局: '+d.networks.join('、'));
+      if(d.episodes)L.push(d.episodes+'話');
+      if(d.runtime)L.push(d.runtime+'分');
+      $('#detailBox').innerHTML=L.map(esc).join('<br>');
+    }).catch(()=>{});
+  }
+}
+
+/* =============== boot =============== */
+function setHH(){document.documentElement.style.setProperty('--hh',$('header').offsetHeight+'px')}
+window.addEventListener('resize',setHH);
+render();setHH();
+gStartup();
+
+</script>
+</body>
+</html>
