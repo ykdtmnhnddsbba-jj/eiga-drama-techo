@@ -27,19 +27,14 @@
 - ratings のキー: `tv:<TMDB ID>` / `mv:<TMDB ID>` / 手動追加は `tv:m…` `mv:m…`。削除は `deleted:true`、マージは `updated_at` の新しい方。
 - 保存: localStorage（`eigadb.*`）＋ Drive の `eiga-drama-db.json`（評価）と `eiga-drama-techo-settings.json`（TMDBキー）。
 
-## 状態
-- ソース: このフォルダの `index.html`（正本は今後 GitHub リポジトリ＋このフォルダ）。
-- **GitHubリポジトリ未作成・未公開**（ユーザーが空リポジトリを作成 → Claudeが push）。
-- jsdom＋TMDB/Driveスタブで 46項目の動作テストは合格。**実TMDB・実Googleとの通信、実ブラウザでの表示は未検証。**
-
-## 公開時のユーザー作業
-1. GitHubで空のPublicリポジトリを作る（候補: `eiga-drama-techo`）。
-2. Settings → Pages → Deploy from a branch / main / (root)。
-3. Google Cloud の OAuth クライアントの「承認済みのリダイレクトURI」に `https://ykdtmnhnddsbba-jj.github.io/<リポジトリ名>/` を追加（JavaScript生成元は github.io のままで可）。
-4. Drive連携後、`eiga-drama-db.json` を Drive の `App/映画、ドラマデータベース` フォルダへ移動（任意）。
+## 状態（2026-11-10 更新）
+- 公開済み: https://ykdtmnhnddsbba-jj.github.io/eiga-drama-techo/ （リポジトリ ykdtmnhnddsbba-jj/eiga-drama-techo, main/root）。OAuthのリダイレクトURI登録済み。
+- 本人がTMDBキー設定・クール表示（実TMDB）の動作を確認済み。ドラマ一覧・TMDB取得は実機で動作。映画検索・Drive同期・続編チェックの実機確認はこれから。
+- 手帖ポータルに映画ドラマ手帖のカードを追加済み（5カード）。
+- ソースの正本: GitHubリポジトリ＋このフォルダ。変更ごとに push。
+- jsdom＋TMDB/Driveスタブで46項目のテストは合格。
 
 ## 次の作業候補
-- リポジトリ作成後: push → Pages確認 → 手帖ポータル（claude.aiアーティファクト）にカード追加。
 - 実画面での確認（TMDBの日本ドラマの網羅度、続編チェックボックスの出方）。
 - 脚本家（例: 古沢良太）で探す／脚本家を好み分析に入れる（TMDB crew 取得が必要）。
 - 映画の長文感想欄が欲しくなったら追加。
