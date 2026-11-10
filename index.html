@@ -120,6 +120,11 @@ footer{max-width:1200px;margin:0 auto;padding:0 16px 40px;color:var(--sub);font-
 .ovw{font-size:12px;color:var(--sub);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .cover .noimg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:6px;text-align:center;font-size:12px;color:var(--sub);word-break:break-all}
 #mq{min-width:260px}
+.subtabs{display:flex;gap:6px;margin:0 0 10px}
+.subtabs button{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:7px 18px;cursor:pointer;font-weight:700;color:var(--sub)}
+.subtabs button.on{background:var(--accent);border-color:var(--accent);color:#220}
+.subtabs .cnt{display:inline-block;min-width:20px;text-align:center;margin-left:4px;padding:0 6px;border-radius:99px;background:rgba(0,0,0,.25);font-size:12px}
+.subtabs button.on .cnt{background:rgba(0,0,0,.18)}
 
 </style>
 </head>
@@ -169,7 +174,8 @@ function courOf(date){const y=+String(date||'').slice(0,4),m=+String(date||'').s
 const S0=curSeason();
 const ui={tab:'drama',year:S0.year,season:S0.season,items:[],loading:false,error:'',sort:'auto',onlyUnrated:false,svc:'either',state:'all',cols:2,cont:true,
   query:'',dSearch:null,
-  mvQuery:'',mvYear:'',mvResults:null,mvState:'want',mvSvc:'all',mvSort:'new',mvLoading:false,mvError:'',
+  dSub:'list',mSub:'list',wSort:'cour',wSvc:'all',
+  mvQuery:'',mvYear:'',mvResults:null,mvState:'all',mvSvc:'all',mvSort:'new',mvLoading:false,mvError:'',
   mySort:'group',mineF:'all',mineK:'all',tasteK:'tv',promptCour:null,
   rank:new Map(),shown:new Set(),resort:true,streamBusy:0,loadTok:0};
 
@@ -678,7 +684,11 @@ function render(){
   else renderSettings(m);
 }
 function afterStream(){
-  if(ui.tab==='drama'){if(ui.svc==='all')patchBadges();else renderDramaGrid();updateStreamNote()}
+  if(ui.tab==='drama'){
+    if(ui.dSub==='want'){if(ui.wSvc==='all')patchBadges();else renderDramaWantGrid()}
+    else{if(ui.svc==='all')patchBadges();else renderDramaGrid()}
+    updateStreamNote();
+  }
   else if(ui.tab==='movie'){if(ui.mvSvc==='all'||ui.mvResults)patchBadges();else renderMovieList();updateStreamNote()}
   else if(ui.tab==='mine')patchBadges();
 }
@@ -707,6 +717,21 @@ function avgChip(it){
   return`<span class="avg ${cls}" title="TMDBの平均評価（${it.votes}件）">★${it.avg.toFixed(1)}<small>平均</small></span>`;
 }
 const simsTxt=rc=>rc&&rc.sims&&rc.sims.length?'　似てる: '+esc(rc.sims.slice(0,2).map(x=>(x.title.length>14?x.title.slice(0,14)+'…':x.title)+'('+(x.score||'♥')+')').join('・')):'';
+
+/* ---- sub tabs (一覧 / 気になる) ---- */
+function wantCount(kind){return entries(kind).filter(r=>r.want).length}
+function subTabsHtml(p){
+  const sub=p==='d'?ui.dSub:ui.mSub;
+  return`<div class="subtabs" data-p="${p}"><button data-sub="list" class="${sub==='list'?'on':''}">一覧</button><button data-sub="want" class="${sub==='want'?'on':''}">☆ 気になる <span class="cnt">${wantCount(p==='d'?'tv':'mv')}</span></button></div>`;
+}
+function bindSub(m){
+  const st=m.querySelector('.subtabs');if(!st)return;
+  st.onclick=e=>{const b=e.target.closest('button');if(!b)return;if(st.dataset.p==='d'){ui.dSub=b.dataset.sub;ui.dSearch=null;ui.query=''}else{ui.mSub=b.dataset.sub;ui.mvResults=null;ui.mvQuery='';ui.mvYear='';ui.mvError=''}render()};   // サブタブを切り替えたら検索結果表示は閉じる
+}
+function updateSubCount(kind){
+  const st=document.querySelector('.subtabs[data-p="'+(kind==='tv'?'d':'m')+'"] button[data-sub="want"] .cnt');
+  if(st)st.textContent=wantCount(kind);
+}
 
 /* ---- quick controls (一覧上のワンクリック評価) ---- */
 const SCORE_HINT={1:'1点',2:'2点',3:'3点',4:'4点（切った）',5:'5点',6:'6点',7:'7点（完走）',8:'8点（面白い）',9:'9点（かなり面白い）',10:'10点（神）'};
@@ -743,7 +768,7 @@ function gridClick(e){
     if(isRated(key)){toast('評価済みの作品は視聴済みです');return true}
     upsert(it,{watched:!isWatched(key)});
   }else upsert(it,{fav:!isFav(key)});
-  refreshCard(q.closest('.card'),key);
+  refreshCard(q.closest('.card'),key);updateSubCount(it.kind);
   if(!db.streaming_cache[key]&&it.tmdb)queueStreaming([it]);
   return true;
 }
@@ -806,10 +831,12 @@ function bindErr(){const b=$('#toSettings');if(b)b.onclick=()=>{ui.tab='settings
 
 /* ---- drama tab ---- */
 function renderDrama(m){
+  if(ui.dSub==='want'){renderDramaWant(m);return}
   ui.resort=true;
   const years=[];for(let y=S0.year+1;y>=2000;y--)years.push(y);
   m.innerHTML=`
   <div class="stick">
+  ${subTabsHtml('d')}
   <div class="toolbar">
     <select id="selY">${years.map(y=>`<option ${y===ui.year?'selected':''}>${y}</option>`).join('')}</select>
     <select id="selS">${SEASONS.map(([k,l])=>`<option value="${k}" ${k===ui.season?'selected':''}>${l}</option>`).join('')}</select>
@@ -846,6 +873,7 @@ function renderDrama(m){
   </div></div>
   <div id="note"></div>
   <div class="grid" id="grid" style="--cols:${ui.cols}"></div>`;
+  bindSub(m);
   $('#selY').onchange=e=>{ui.year=+e.target.value;loadCour()};
   $('#selS').onchange=e=>{ui.season=e.target.value;loadCour()};
   $('#selSort').onchange=e=>{ui.sort=e.target.value;ui.resort=true;renderDramaGrid()};
@@ -933,25 +961,91 @@ function renderDramaGridRaw(){
   g.innerHTML=items.length?items.map(it=>cardHtml(it,rec.get(it.key),prof.n>=3)).join(''):'<div class="empty" style="grid-column:1/-1">表示できる作品がありません</div>';
 }
 
+
+/* ---- drama: 気になる ---- */
+function renderDramaWant(m){
+  m.innerHTML=`
+  <div class="stick">
+  ${subTabsHtml('d')}
+  <div class="toolbar">
+    <select id="wSort">
+      <option value="cour" ${ui.wSort==='cour'?'selected':''}>並び: 放送クール別</option>
+      <option value="match" ${ui.wSort==='match'?'selected':''}>並び: 相性順</option>
+      <option value="new" ${ui.wSort==='new'?'selected':''}>並び: 追加が新しい順</option>
+    </select>
+    <select id="wSvc">
+      <option value="all" ${ui.wSvc==='all'?'selected':''}>配信: すべて</option>
+      <option value="prime" ${ui.wSvc==='prime'?'selected':''}>Prime Videoで見放題</option>
+      <option value="netflix" ${ui.wSvc==='netflix'?'selected':''}>Netflixで見放題</option>
+      <option value="either" ${ui.wSvc==='either'?'selected':''}>どちらかで見放題</option>
+    </select>
+    <button class="btn" id="colBtn">表示: ${ui.cols}列</button>
+    <span class="hint" id="streamNote"></span>
+  </div></div>
+  <div id="note"></div>
+  <div class="grid" id="grid" style="--cols:${ui.cols}"></div>`;
+  bindSub(m);
+  $('#wSort').onchange=e=>{ui.wSort=e.target.value;renderDramaWantGrid()};
+  $('#wSvc').onchange=e=>{ui.wSvc=e.target.value;renderDramaWantGrid()};
+  $('#colBtn').onclick=()=>{ui.cols=ui.cols===2?1:2;$('#colBtn').textContent='表示: '+ui.cols+'列';$('#grid').style.setProperty('--cols',ui.cols)};
+  bindGrid($('#grid'));
+  renderDramaWantGrid();updateStreamNote();
+  queueStreaming(entries('tv').filter(r=>r.want).map(r=>itemByKey(r.key)).filter(Boolean));
+}
+function dramaWantItems(){
+  let rs=entries('tv').filter(r=>{
+    if(!r.want)return false;
+    if(ui.wSvc!=='all'){
+      const s=streamOf(r.key);
+      const ok=ui.wSvc==='prime'?s.prime.v===true:ui.wSvc==='netflix'?s.netflix.v===true:(s.prime.v===true||s.netflix.v===true);
+      if(!ok)return false;
+    }
+    return true;
+  });
+  const prof=buildProfile('tv');
+  const mt=r=>{const it=itemByKey(r.key);return it?(recommend(it,prof).match||0):0};
+  if(ui.wSort==='match')rs.sort((a,b)=>mt(b)-mt(a));
+  else if(ui.wSort==='new')rs.sort((a,b)=>(b.rated_at||'').localeCompare(a.rated_at||''));
+  else rs.sort((a,b)=>courRank(b)-courRank(a)||(b.date||'').localeCompare(a.date||'')||(b.rated_at||'').localeCompare(a.rated_at||''));
+  return rs;
+}
+function courRank(r){const m=String(r.season||'').match(/^(\d{4})-(\w+)$/);return m?(+m[1])*4+(SORD[m[2]]||0):0}
+function renderDramaWantGrid(){withKeepFocus('#grid',renderDramaWantGridRaw)}
+function renderDramaWantGridRaw(){
+  const g=$('#grid'),note=$('#note');if(!g)return;
+  const rs=dramaWantItems(),total=wantCount('tv'),prof=buildProfile('tv');
+  note.innerHTML=total?`<p class="hint">「気になる」のドラマ ${rs.length}件を表示中（全${total}件）。評価や視聴済みをつけると一覧から外れます。</p>`:'<div class="empty">「気になる」のドラマはまだありません。一覧で「☆ 気になる」を押すと、ここに集まります。</div>';
+  let html='',cur=null;
+  rs.forEach(r=>{
+    const it=itemByKey(r.key);if(!it)return;
+    if(ui.wSort==='cour'){
+      const k=courRank(r);
+      if(k!==cur){cur=k;const mm=String(r.season||'').match(/^(\d{4})-(\w+)$/);html+=`<h3 class="gh">${mm?mm[1]+'年 '+(SEASON_JA[mm[2]]||'')+'ドラマ':'クール不明'}</h3>`}
+    }
+    html+=cardHtml(it,recommend(it,prof),prof.n>=3);
+  });
+  g.innerHTML=html;
+}
+
 /* ---- movie tab ---- */
 function renderMovie(m){
   m.innerHTML=`
   <div class="stick">
+  ${subTabsHtml('m')}
   <div class="toolbar">
     <input type="text" id="mq" placeholder="映画のタイトルで検索して追加（日本語・英語）" value="${esc(ui.mvQuery)}">
     <input type="number" id="myr" placeholder="公開年(任意)" value="${esc(ui.mvYear)}" style="width:120px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px">
     <button class="btn pri" id="mGo">検索</button>
-    ${ui.mvResults?'<button class="btn" id="mBack">自分の映画リストに戻る</button>':''}
+    ${ui.mvResults?'<button class="btn" id="mBack">リストに戻る</button>':''}
   </div>
   <div class="toolbar" id="mTools" ${ui.mvResults?'hidden':''}>
-    <select id="mState">
-      <option value="want" ${ui.mvState==='want'?'selected':''}>☆ 気になる（観たい）</option>
+    ${ui.mSub==='list'?`<select id="mState">
+      <option value="all" ${ui.mvState==='all'?'selected':''}>状態: すべて</option>
       <option value="unwatched" ${ui.mvState==='unwatched'?'selected':''}>未視聴すべて</option>
       <option value="watched" ${ui.mvState==='watched'?'selected':''}>✓ 視聴済み</option>
       <option value="fav" ${ui.mvState==='fav'?'selected':''}>♥ お気に入り</option>
       <option value="dropped" ${ui.mvState==='dropped'?'selected':''}>✗ 切った</option>
-      <option value="all" ${ui.mvState==='all'?'selected':''}>すべて</option>
-    </select>
+    </select>`:''}
     <select id="mSvc">
       <option value="all" ${ui.mvSvc==='all'?'selected':''}>配信: すべて</option>
       <option value="prime" ${ui.mvSvc==='prime'?'selected':''}>Prime Videoで見放題</option>
@@ -980,7 +1074,8 @@ function renderMovie(m){
   $('#mq').onkeydown=e=>{if(e.key==='Enter')go()};
   $('#myr').onkeydown=e=>{if(e.key==='Enter')go()};
   const bk=$('#mBack');if(bk)bk.onclick=()=>{ui.mvResults=null;ui.mvQuery='';ui.mvYear='';ui.mvError='';renderMovie(m)};
-  $('#mState').onchange=e=>{ui.mvState=e.target.value;renderMovieList()};
+  bindSub(m);
+  const ms=$('#mState');if(ms)ms.onchange=e=>{ui.mvState=e.target.value;renderMovieList()};
   $('#mSvc').onchange=e=>{ui.mvSvc=e.target.value;renderMovieList()};
   $('#mSort').onchange=e=>{ui.mvSort=e.target.value;renderMovieList()};
   $('#colBtn').onclick=()=>{ui.cols=ui.cols===2?1:2;$('#colBtn').textContent='表示: '+ui.cols+'列';$('#vgrid').style.setProperty('--cols',ui.cols)};
@@ -991,11 +1086,12 @@ function renderMovie(m){
 function movieListItems(){
   let rs=entries('mv').filter(r=>{
     const k=r.key;
-    if(ui.mvState==='want'&&!r.want)return false;
-    if(ui.mvState==='unwatched'&&isWatched(k))return false;
-    if(ui.mvState==='watched'&&!isWatched(k))return false;
-    if(ui.mvState==='fav'&&!r.fav)return false;
-    if(ui.mvState==='dropped'&&!isDropped(k))return false;
+    const st=ui.mSub==='want'?'want':ui.mvState;
+    if(st==='want'&&!r.want)return false;
+    if(st==='unwatched'&&isWatched(k))return false;
+    if(st==='watched'&&!isWatched(k))return false;
+    if(st==='fav'&&!r.fav)return false;
+    if(st==='dropped'&&!isDropped(k))return false;
     if(ui.mvSvc!=='all'){
       const s=streamOf(k);
       const ok=ui.mvSvc==='prime'?s.prime.v===true:ui.mvSvc==='netflix'?s.netflix.v===true:(s.prime.v===true||s.netflix.v===true);
@@ -1024,8 +1120,9 @@ function renderMovieListRaw(){
     return;
   }
   const items=movieListItems();
-  const total=entries('mv').length;
-  note.innerHTML=total?`<p class="hint">${items.length}本を表示中（登録 ${total}本）。上の検索で映画を探して追加します。</p>`:'<div class="empty">まだ映画が登録されていません。上の検索ボックスでタイトルを検索して、「☆ 気になる」で観たい映画をメモしましょう。</div>';
+  const total=entries('mv').length,wn=wantCount('mv');
+  if(ui.mSub==='want')note.innerHTML=wn?`<p class="hint">「気になる」の映画 ${items.length}本を表示中（全${wn}本）。評価や視聴済みをつけると、次に開いたときにここから外れます。</p>`:'<div class="empty">「気になる」の映画はまだありません。上の検索ボックスで映画を探して、「☆ 気になる」を押してください。</div>';
+  else note.innerHTML=total?`<p class="hint">${items.length}本を表示中（登録 ${total}本）。上の検索で映画を探して追加します。</p>`:'<div class="empty">まだ映画が登録されていません。上の検索ボックスでタイトルを検索して、「☆ 気になる」で観たい映画をメモしましょう。</div>';
   g.innerHTML=items.map(it=>cardHtml(it,recommend(it,prof),prof.n>=3)).join('');
 }
 
