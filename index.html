@@ -340,6 +340,37 @@ async function pumpStream(){
   }
 }
 
+/* =============== TMDB平均評価の補完（「気になる」を平均評価順に並べるため） =============== */
+let avgQueue=[],avgRunning=0,avgTimer=null;
+const AVG_TTL=30*86400e3;
+function needsAvg(r){return !!(r&&!r.deleted&&r.tmdb&&(r.avg_at===undefined||Date.now()-Date.parse(r.avg_at||0)>AVG_TTL))}
+function queueAvg(keys){
+  if(!(settings.tmdb_key||'').trim())return;
+  keys.forEach(k=>{if(needsAvg(db.ratings[k])&&!avgQueue.includes(k))avgQueue.push(k)});
+  pumpAvg();
+}
+async function pumpAvg(){
+  while(avgRunning<3&&avgQueue.length){
+    const k=avgQueue.shift();avgRunning++;
+    (async()=>{
+      try{
+        const r=db.ratings[k],kind=kindOf(k);
+        const d=await tmdb((kind==='tv'?'/tv/':'/movie/')+r.tmdb,{language:'ja-JP'});
+        const min=kind==='tv'?5:20;
+        r.avg=(d.vote_count>=min)?d.vote_average:null;r.votes=d.vote_count||0;r.avg_at=nowIso();
+        const m=metaCache.get(k);if(m){m.avg=r.avg;m.votes=r.votes}
+      }catch(e){if(/キー/.test(e.message))avgQueue=[]}
+      finally{
+        avgRunning--;
+        if(!avgRunning&&!avgQueue.length)saveLocal();
+        clearTimeout(avgTimer);avgTimer=setTimeout(()=>{if(typeof afterAvg==='function')afterAvg()},300);
+        pumpAvg();
+      }
+    })();
+    await sleep(120);
+  }
+}
+
 /* =============== taste / recommend =============== */
 function entries(kind){return Object.entries(db.ratings).filter(([k,r])=>!r.deleted&&(!kind||kindOf(k)===kind)).map(([key,r])=>({key,...r}))}
 function activeRatings(kind){return entries(kind).filter(r=>r.score>0)}
@@ -455,12 +486,12 @@ function itemByKey(key){
   const r=db.ratings[key];
   if(!r)return null;
   const kind=kindOf(key);
-  return{key,kind,tmdb:r.tmdb||null,title:r.title||'(無題)',orig:r.orig||'',cover:r.cover||'',genres:r.genres||[],tags:r.tags||[],avg:null,votes:0,pop:0,desc:'',
+  return{key,kind,tmdb:r.tmdb||null,title:r.title||'(無題)',orig:r.orig||'',cover:r.cover||'',genres:r.genres||[],tags:r.tags||[],avg:r.avg||null,votes:r.votes||0,pop:0,desc:'',
     date:r.date||'',year:r.year||null,season_no:r.season_no||null,eps:r.eps||null,
     url:r.tmdb?`https://www.themoviedb.org/${kind==='tv'?'tv':'movie'}/${r.tmdb}${r.season_no?'/season/'+r.season_no:''}`:''};
 }
 function snapshot(it){return{kind:it.kind,tmdb:it.tmdb||null,title:it.title,orig:it.orig||'',cover:it.cover||'',genres:it.genres||[],tags:it.tags||[],
-  date:it.date||'',year:it.year||null,season:it.kind==='tv'?courOf(it.date):'',season_no:it.season_no||null,eps:it.eps||null}}
+  date:it.date||'',year:it.year||null,season:it.kind==='tv'?courOf(it.date):'',season_no:it.season_no||null,eps:it.eps||null,avg:it.avg||null,votes:it.votes||0}}
 function upsert(it,patch){
   const old=db.ratings[it.key];
   const live=(old&&!old.deleted)?old:null;
@@ -691,6 +722,10 @@ function afterStream(){
   }
   else if(ui.tab==='movie'){if(ui.mvSvc==='all'||ui.mvResults)patchBadges();else renderMovieList();updateStreamNote()}
   else if(ui.tab==='mine')patchBadges();
+}
+function afterAvg(){
+  if(ui.tab==='drama'&&ui.dSub==='want')renderDramaWantGrid();
+  else if(ui.tab==='movie'&&!ui.mvResults)renderMovieList();
 }
 function patchBadges(){document.querySelectorAll('.card.item').forEach(c=>{const bd=c.querySelector('.bd');if(bd)bd.innerHTML=badgesHtml(c.dataset.key)})}
 function updateStreamNote(){
@@ -970,6 +1005,7 @@ function renderDramaWant(m){
   <div class="toolbar">
     <select id="wSort">
       <option value="cour" ${ui.wSort==='cour'?'selected':''}>並び: 放送クール別</option>
+      <option value="avg" ${ui.wSort==='avg'?'selected':''}>並び: 平均評価順（TMDB）</option>
       <option value="match" ${ui.wSort==='match'?'selected':''}>並び: 相性順</option>
       <option value="new" ${ui.wSort==='new'?'selected':''}>並び: 追加が新しい順</option>
     </select>
@@ -991,6 +1027,7 @@ function renderDramaWant(m){
   bindGrid($('#grid'));
   renderDramaWantGrid();updateStreamNote();
   queueStreaming(entries('tv').filter(r=>r.want).map(r=>itemByKey(r.key)).filter(Boolean));
+  queueAvg(entries('tv').filter(r=>r.want).map(r=>r.key));
 }
 function dramaWantItems(){
   let rs=entries('tv').filter(r=>{
@@ -1004,7 +1041,9 @@ function dramaWantItems(){
   });
   const prof=buildProfile('tv');
   const mt=r=>{const it=itemByKey(r.key);return it?(recommend(it,prof).match||0):0};
-  if(ui.wSort==='match')rs.sort((a,b)=>mt(b)-mt(a));
+  const av=r=>{const it=itemByKey(r.key);return it&&it.avg!=null?it.avg:-1};
+  if(ui.wSort==='avg')rs.sort((a,b)=>av(b)-av(a)||(b.rated_at||'').localeCompare(a.rated_at||''));
+  else if(ui.wSort==='match')rs.sort((a,b)=>mt(b)-mt(a));
   else if(ui.wSort==='new')rs.sort((a,b)=>(b.rated_at||'').localeCompare(a.rated_at||''));
   else rs.sort((a,b)=>courRank(b)-courRank(a)||(b.date||'').localeCompare(a.date||'')||(b.rated_at||'').localeCompare(a.rated_at||''));
   return rs;
@@ -1054,8 +1093,9 @@ function renderMovie(m){
     </select>
     <select id="mSort">
       <option value="new" ${ui.mvSort==='new'?'selected':''}>並び: 追加が新しい順</option>
+      <option value="avg" ${ui.mvSort==='avg'?'selected':''}>並び: 平均評価順（TMDB）</option>
       <option value="match" ${ui.mvSort==='match'?'selected':''}>並び: 相性順</option>
-      <option value="high" ${ui.mvSort==='high'?'selected':''}>並び: 高評価順</option>
+      <option value="high" ${ui.mvSort==='high'?'selected':''}>並び: 自分の点数順</option>
       <option value="year" ${ui.mvSort==='year'?'selected':''}>並び: 公開年が新しい順</option>
     </select>
     <button class="btn" id="colBtn">表示: ${ui.cols}列</button>
@@ -1081,7 +1121,7 @@ function renderMovie(m){
   $('#colBtn').onclick=()=>{ui.cols=ui.cols===2?1:2;$('#colBtn').textContent='表示: '+ui.cols+'列';$('#vgrid').style.setProperty('--cols',ui.cols)};
   bindGrid($('#vgrid'));
   renderMovieList();updateStreamNote();
-  if(!ui.mvResults)queueStreaming(movieListItems());
+  if(!ui.mvResults){const li=movieListItems();queueStreaming(li);queueAvg(li.map(x=>x.key))}
 }
 function movieListItems(){
   let rs=entries('mv').filter(r=>{
@@ -1101,7 +1141,9 @@ function movieListItems(){
   });
   const prof=buildProfile('mv');
   const mt=r=>{const it=itemByKey(r.key);return it?(recommend(it,prof).match||0):0};
-  if(ui.mvSort==='high')rs.sort((a,b)=>b.score-a.score||(b.updated_at||'').localeCompare(a.updated_at||''));
+  const av=r=>{const it=itemByKey(r.key);return it&&it.avg!=null?it.avg:-1};
+  if(ui.mvSort==='avg')rs.sort((a,b)=>av(b)-av(a)||(b.rated_at||'').localeCompare(a.rated_at||''));
+  else if(ui.mvSort==='high')rs.sort((a,b)=>b.score-a.score||(b.updated_at||'').localeCompare(a.updated_at||''));
   else if(ui.mvSort==='year')rs.sort((a,b)=>(b.year||0)-(a.year||0));
   else if(ui.mvSort==='match')rs.sort((a,b)=>mt(b)-mt(a));
   else rs.sort((a,b)=>(b.rated_at||'').localeCompare(a.rated_at||''));
