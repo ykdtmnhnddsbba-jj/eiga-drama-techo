@@ -154,7 +154,7 @@ function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}ca
 function toast(msg,ms=2600){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),ms)}
 
 /* =============== state =============== */
-const LS_DB='eigadb.v1',LS_SET='eigadb.settings.v1',LS_CACHE='eigadb.cour.v1';
+const LS_DB='eigadb.v1',LS_SET='eigadb.settings.v1',LS_CACHE='eigadb.cour.v1',LS_MCACHE='eigadb.month.v1';
 const SEASONS=[['WINTER','冬 (1月〜)'],['SPRING','春 (4月〜)'],['SUMMER','夏 (7月〜)'],['FALL','秋 (10月〜)']];
 const SEASON_JA={WINTER:'冬',SPRING:'春',SUMMER:'夏',FALL:'秋'};
 const COUR_M={WINTER:[1,3],SPRING:[4,6],SUMMER:[7,9],FALL:[10,12]};
@@ -170,12 +170,13 @@ const DEFAULT_CLIENT_ID='568813131190-9pb3hf0f3g3rbiglkq4nbk88g4eltk9p.apps.goog
 if(!settings.google_client_id)settings.google_client_id=DEFAULT_CLIENT_ID;
 const metaCache=new Map();     // key -> item
 const courMem=new Map();       // 'YYYY-SEASON' -> items
+const monthMem=new Map();      // 'YYYY-MM' -> {theater,stream}
 function curSeason(d=new Date()){const m=d.getMonth()+1;return{year:d.getFullYear(),season:m<=3?'WINTER':m<=6?'SPRING':m<=9?'SUMMER':'FALL'}}
 function courOf(date){const y=+String(date||'').slice(0,4),m=+String(date||'').slice(5,7);if(!y||!m)return'';return y+'-'+(m<=3?'WINTER':m<=6?'SPRING':m<=9?'SUMMER':'FALL')}
 const S0=curSeason();
 const ui={tab:'drama',year:S0.year,season:S0.season,items:[],loading:false,error:'',sort:'auto',onlyUnrated:false,svc:'either',state:'all',cols:2,cont:true,
   query:'',dSearch:null,
-  dSub:'list',mSub:'list',wSort:'cour',wSvc:'all',
+  dSub:'list',mSub:'month',mmY:new Date().getFullYear(),mmM:new Date().getMonth()+1,mmData:null,mmLoading:false,mmError:'',mmSort:'pop',mmSvc:'all',mmState:'all',mmOrig:'all',mmTok:0,wSort:'cour',wSvc:'all',
   mvQuery:'',mvYear:'',mvResults:null,mvState:'all',mvSvc:'all',mvSort:'new',mvLoading:false,mvError:'',
   mySort:'group',mineF:'all',mineK:'all',tasteK:'tv',promptCour:null,
   rank:new Map(),shown:new Set(),resort:true,streamBusy:0,loadTok:0};
@@ -254,6 +255,37 @@ async function fetchCour(year,season,cont,force){
   const trimmed={};keys.forEach(k=>trimmed[k]=cache[k]);
   lsSet(LS_CACHE,trimmed);
   return remember(items);
+}
+// 映画の月別一覧（実写のみ）。劇場=日本で劇場公開された作品、配信=その月に初公開され、いまNetflix/Primeで見放題の作品
+const MV_EXCLUDE=new Set([16,99]);   // アニメ（アニメ手帖で管理）・ドキュメンタリー（ライブ映像・スポーツ記録など）は除く
+const MONTH_MAX=30;
+function monthRange(y,m){return{start:`${y}-${pad2(m)}-01`,end:`${y}-${pad2(m)}-${pad2(new Date(y,m,0).getDate())}`}}
+async function fetchMonth(y,m,force){
+  const key=y+'-'+pad2(m);
+  if(!force&&monthMem.has(key)){const d=monthMem.get(key);remember(d.theater);remember(d.stream);return d}
+  const cache=lsGet(LS_MCACHE,{});
+  const now=new Date(),age=(now.getFullYear()*12+now.getMonth())-(y*12+m-1);
+  const ttl=age>=2?7*86400e3:12*3600e3;   // 2か月以上前の月はあまり変わらないので1週間使い回す
+  if(!force&&cache[key]&&Date.now()-cache[key].t<ttl){const d=cache[key].d;monthMem.set(key,d);remember(d.theater);remember(d.stream);return d}
+  const {start,end}=monthRange(y,m);
+  const okG=r=>!(r.genre_ids||[]).some(g=>MV_EXCLUDE.has(g));
+  const base={language:'ja-JP',sort_by:'popularity.desc',include_adult:'false',without_genres:'16,99'};
+  const th=await pullPages('/discover/movie',Object.assign({},base,{region:'JP','release_date.gte':start,'release_date.lte':end,with_release_type:'2|3'}),3);
+  const theater=th.filter(okG).map(normMv).slice(0,MONTH_MAX);
+  theater.forEach(x=>x.src='theater');
+  const have=new Set(theater.map(x=>x.key));
+  const st=await pullPages('/discover/movie',Object.assign({},base,{watch_region:'JP',with_watch_providers:'8|9|119',with_watch_monetization_types:'flatrate','primary_release_date.gte':start,'primary_release_date.lte':end}),3);
+  const stream=st.filter(okG).map(normMv).filter(x=>!have.has(x.key)).slice(0,MONTH_MAX);
+  stream.forEach(x=>x.src='stream');
+  [...theater,...stream].forEach(x=>{x.olang=(th.concat(st).find(r=>r.id===x.tmdb)||{}).original_language||''});
+  const d={theater,stream};
+  monthMem.set(key,d);
+  cache[key]={t:Date.now(),d};
+  const keys=Object.keys(cache).sort((a,b)=>cache[b].t-cache[a].t).slice(0,24);
+  const trimmed={};keys.forEach(k=>trimmed[k]=cache[k]);
+  if(!lsSet(LS_MCACHE,trimmed)){const t2={};keys.slice(0,6).forEach(k=>t2[k]=cache[k]);lsSet(LS_MCACHE,t2)}
+  remember(theater);remember(stream);
+  return d;
 }
 async function searchTv(text){
   const d=await tmdb('/search/tv',{query:text,language:'ja-JP',include_adult:'false'});
@@ -651,12 +683,13 @@ function afterStream(){
     else{if(ui.svc==='all')patchBadges();else renderDramaGrid()}
     updateStreamNote();
   }
+  else if(ui.tab==='movie'&&ui.mSub==='month'){if(ui.mmSvc==='all')patchBadges();else renderMonthGrid();updateStreamNote()}
   else if(ui.tab==='movie'){if(ui.mvSvc==='all'||ui.mvResults)patchBadges();else renderMovieList();updateStreamNote()}
   else if(ui.tab==='mine')patchBadges();
 }
 function afterAvg(){
   if(ui.tab==='drama'&&ui.dSub==='want')renderDramaWantGrid();
-  else if(ui.tab==='movie'&&!ui.mvResults)renderMovieList();
+  else if(ui.tab==='movie'&&ui.mSub!=='month'&&!ui.mvResults)renderMovieList();
 }
 function patchBadges(){document.querySelectorAll('.card.item').forEach(c=>{const bd=c.querySelector('.bd');if(bd)bd.innerHTML=badgesHtml(c.dataset.key)})}
 function updateStreamNote(){
@@ -688,7 +721,7 @@ const simsTxt=rc=>rc&&rc.sims&&rc.sims.length?'　似てる: '+esc(rc.sims.slice
 function wantCount(kind){return entries(kind).filter(r=>r.want).length}
 function subTabsHtml(p){
   const sub=p==='d'?ui.dSub:ui.mSub;
-  return`<div class="subtabs" data-p="${p}"><button data-sub="list" class="${sub==='list'?'on':''}">一覧</button><button data-sub="want" class="${sub==='want'?'on':''}">☆ 気になる <span class="cnt">${wantCount(p==='d'?'tv':'mv')}</span></button></div>`;
+  return`<div class="subtabs" data-p="${p}">${p==='m'?`<button data-sub="month" class="${sub==='month'?'on':''}">📅 月別</button>`:''}<button data-sub="list" class="${sub==='list'?'on':''}">一覧</button><button data-sub="want" class="${sub==='want'?'on':''}">☆ 気になる <span class="cnt">${wantCount(p==='d'?'tv':'mv')}</span></button></div>`;
 }
 function bindSub(m){
   const st=m.querySelector('.subtabs');if(!st)return;
@@ -766,7 +799,7 @@ function bindGrid(el){
 }
 function cardHtml(it,rc,showMatch){
   const r=db.ratings[it.key],rated=isRated(it.key);
-  const when=it.kind==='tv'?(it.date?it.date.slice(5).replace('-','/')+'〜':''):(it.year?it.year+'年':'');
+  const when=it.kind==='tv'?(it.date?it.date.slice(5).replace('-','/')+'〜':''):(it.src==='theater'&&ui.tab==='movie'&&ui.mSub==='month'?ui.mmY+'/'+ui.mmM+' 日本公開':it.src==='stream'&&ui.tab==='movie'&&ui.mSub==='month'&&it.date?it.date.replace(/-/g,'/')+' 公開':(it.year?it.year+'年':''));
   const meta=[when,it.eps?it.eps+'話':'',it.genres.slice(0,3).join(' / '),it.cont?'継続・続編':''].filter(Boolean).join(' ・ ');
   const canSplit=it.kind==='tv'&&it.tmdb&&!it.season_no&&!it.single&&ui.dSearch&&ui.dSearch.includes(it);
   const noimg=it.cover?'':`<span class="noimg">${esc(it.title.slice(0,8))}</span>`;
@@ -860,14 +893,14 @@ function renderDrama(m){
   const bs=$('#backCour');if(bs)bs.onclick=()=>{ui.dSearch=null;ui.query='';renderDrama(m)};
   bindGrid($('#grid'));
   renderDramaGrid();updateStreamNote();
-  if(!ui.items.length&&!ui.dSearch&&!ui.loading&&!ui.error)loadCour();
+  if(!ui.items.length&&!ui.dSearch&&!ui.loading&&!ui.error&&ui.courDone!==ui.year+'-'+ui.season+ui.cont)loadCour();   // 0件のクールで読み込みを繰り返さない
 }
 async function loadCour(force){
   ui.loadTok++;const tok=ui.loadTok;
   ui.resort=true;ui.loading=true;ui.error='';ui.dSearch=null;ui.query='';ui.items=[];renderDramaGrid();
   try{const items=await fetchCour(ui.year,ui.season,ui.cont,force);if(tok!==ui.loadTok)return;ui.items=items;queueStreaming(items)}
   catch(e){if(tok!==ui.loadTok)return;ui.error=e.message;ui.items=[]}
-  ui.loading=false;if(ui.tab==='drama')renderDrama($('#main'));
+  ui.loading=false;ui.courDone=ui.year+'-'+ui.season+ui.cont;if(ui.tab==='drama')renderDrama($('#main'));
 }
 function visibleDrama(){
   let items=(ui.dSearch||ui.items).slice();
@@ -999,6 +1032,7 @@ function renderDramaWantGridRaw(){
 
 /* ---- movie tab ---- */
 function renderMovie(m){
+  if(ui.mSub==='month'){renderMovieMonth(m);return}
   m.innerHTML=`
   <div class="stick">
   ${subTabsHtml('m')}
@@ -1053,6 +1087,112 @@ function renderMovie(m){
   bindGrid($('#vgrid'));
   renderMovieList();updateStreamNote();
   if(!ui.mvResults){const li=movieListItems();queueStreaming(li);queueAvg(li.map(x=>x.key))}
+}
+/* ---- movie: 月別 ---- */
+function renderMovieMonth(m){
+  const years=[];for(let y=S0.year+1;y>=2000;y--)years.push(y);
+  m.innerHTML=`
+  <div class="stick">
+  ${subTabsHtml('m')}
+  <div class="toolbar">
+    <button class="btn" id="mmPrev" title="前の月">◀</button>
+    <select id="mmY">${years.map(y=>`<option ${y===ui.mmY?'selected':''}>${y}</option>`).join('')}</select>
+    <select id="mmM">${Array.from({length:12},(_,i)=>`<option value="${i+1}" ${i+1===ui.mmM?'selected':''}>${i+1}月</option>`).join('')}</select>
+    <button class="btn" id="mmNext" title="次の月">▶</button>
+    <button class="btn" id="mmNow">今月</button>
+    <button class="btn" id="mmReload">再読込</button>
+  </div>
+  <div class="toolbar">
+    <select id="mmSort">
+      <option value="pop" ${ui.mmSort==='pop'?'selected':''}>並び: 人気順</option>
+      <option value="avg" ${ui.mmSort==='avg'?'selected':''}>並び: 平均評価順（TMDB）</option>
+      <option value="match" ${ui.mmSort==='match'?'selected':''}>並び: 相性順</option>
+      <option value="date" ${ui.mmSort==='date'?'selected':''}>並び: 公開日順</option>
+    </select>
+    <select id="mmSvc">
+      <option value="all" ${ui.mmSvc==='all'?'selected':''}>配信: すべて</option>
+      <option value="prime" ${ui.mmSvc==='prime'?'selected':''}>Prime Videoで見放題</option>
+      <option value="netflix" ${ui.mmSvc==='netflix'?'selected':''}>Netflixで見放題</option>
+      <option value="either" ${ui.mmSvc==='either'?'selected':''}>どちらかで見放題</option>
+    </select>
+    <select id="mmOrig">
+      <option value="all" ${ui.mmOrig==='all'?'selected':''}>邦画・洋画</option>
+      <option value="ja" ${ui.mmOrig==='ja'?'selected':''}>邦画のみ</option>
+      <option value="other" ${ui.mmOrig==='other'?'selected':''}>洋画のみ</option>
+    </select>
+    <select id="mmState">
+      <option value="all" ${ui.mmState==='all'?'selected':''}>状態: すべて</option>
+      <option value="unwatched" ${ui.mmState==='unwatched'?'selected':''}>未視聴のみ</option>
+      <option value="watched" ${ui.mmState==='watched'?'selected':''}>視聴済みのみ</option>
+      <option value="want" ${ui.mmState==='want'?'selected':''}>気になるのみ</option>
+    </select>
+    <button class="btn" id="colBtn">表示: ${ui.cols}列</button>
+    <span class="hint" id="streamNote"></span>
+  </div></div>
+  <div id="note"></div>
+  <div class="grid" id="mgrid" style="--cols:${ui.cols}"></div>`;
+  bindSub(m);
+  const go=(y,mo)=>{if(mo<1){y--;mo=12}if(mo>12){y++;mo=1}ui.mmY=y;ui.mmM=mo;renderMovieMonth(m);loadMonth()};
+  $('#mmPrev').onclick=()=>go(ui.mmY,ui.mmM-1);
+  $('#mmNext').onclick=()=>go(ui.mmY,ui.mmM+1);
+  $('#mmNow').onclick=()=>{const d=new Date();go(d.getFullYear(),d.getMonth()+1)};
+  $('#mmY').onchange=e=>go(+e.target.value,ui.mmM);
+  $('#mmM').onchange=e=>go(ui.mmY,+e.target.value);
+  $('#mmReload').onclick=()=>loadMonth(true);
+  $('#mmSort').onchange=e=>{ui.mmSort=e.target.value;renderMonthGrid()};
+  $('#mmSvc').onchange=e=>{ui.mmSvc=e.target.value;renderMonthGrid()};
+  $('#mmOrig').onchange=e=>{ui.mmOrig=e.target.value;renderMonthGrid()};
+  $('#mmState').onchange=e=>{ui.mmState=e.target.value;renderMonthGrid()};
+  $('#colBtn').onclick=()=>{ui.cols=ui.cols===2?1:2;$('#colBtn').textContent='表示: '+ui.cols+'列';$('#mgrid').style.setProperty('--cols',ui.cols)};
+  bindGrid($('#mgrid'));
+  renderMonthGrid();updateStreamNote();
+  const want=ui.mmY+'-'+pad2(ui.mmM);
+  if((!ui.mmData||ui.mmData.key!==want)&&!ui.mmLoading&&!ui.mmError)loadMonth();
+}
+async function loadMonth(force){
+  ui.mmTok++;const tok=ui.mmTok;
+  ui.mmLoading=true;ui.mmError='';ui.mmData=null;renderMonthGrid();
+  try{
+    const d=await fetchMonth(ui.mmY,ui.mmM,force);if(tok!==ui.mmTok)return;
+    ui.mmData={key:ui.mmY+'-'+pad2(ui.mmM),theater:d.theater,stream:d.stream};
+    queueStreaming(d.theater.concat(d.stream));
+  }catch(e){if(tok!==ui.mmTok)return;ui.mmError=e.message}
+  ui.mmLoading=false;
+  if(ui.tab==='movie'&&ui.mSub==='month'){renderMonthGrid();updateStreamNote()}
+}
+function monthVisible(list,prof){
+  const passes=it=>{
+    const k=it.key;
+    if(ui.mmState==='unwatched'&&isWatched(k))return false;
+    if(ui.mmState==='watched'&&!isWatched(k))return false;
+    if(ui.mmState==='want'&&!isWant(k))return false;
+    if(ui.mmOrig==='ja'&&it.olang!=='ja')return false;
+    if(ui.mmOrig==='other'&&it.olang==='ja')return false;
+    if(ui.mmSvc!=='all'){
+      const s=streamOf(k);
+      const ok=ui.mmSvc==='prime'?s.prime.v===true:ui.mmSvc==='netflix'?s.netflix.v===true:(s.prime.v===true||s.netflix.v===true);
+      if(!ok)return false;
+    }
+    return true;
+  };
+  const items=list.filter(passes);
+  if(ui.mmSort==='avg')items.sort((a,b)=>(b.avg||0)-(a.avg||0));
+  else if(ui.mmSort==='date')items.sort((a,b)=>(a.date||'9').localeCompare(b.date||'9'));
+  else if(ui.mmSort==='match'&&prof.n>=3)items.sort((a,b)=>(recommend(b,prof).match||0)-(recommend(a,prof).match||0));
+  else items.sort((a,b)=>b.pop-a.pop);
+  return items;
+}
+function renderMonthGrid(){withKeepFocus('#mgrid',renderMonthGridRaw)}
+function renderMonthGridRaw(){
+  const g=$('#mgrid'),note=$('#note');if(!g)return;
+  if(ui.mmLoading){note.innerHTML='<div class="empty"><span class="spin"></span>読み込み中…</div>';g.innerHTML='';return}
+  if(ui.mmError){note.innerHTML=errPanel(ui.mmError);g.innerHTML='';bindErr();return}
+  if(!ui.mmData){note.innerHTML='';g.innerHTML='';return}
+  const prof=buildProfile('mv');
+  const th=monthVisible(ui.mmData.theater,prof),st=monthVisible(ui.mmData.stream,prof);
+  note.innerHTML=`<p class="hint">${ui.mmY}年${ui.mmM}月の映画（実写のみ・アニメとドキュメンタリーは除く）。劇場公開は日本で公開された作品を人気順に最大${MONTH_MAX}本、配信スタートはこの月に初公開され、いまNetflix・Primeで見放題の作品です。TMDBに未登録の作品は載りません。</p>`;
+  const sec=(title,items,total)=>`<h3 class="gh" style="grid-column:1/-1">${title}（${items.length}${items.length!==total?' / '+total:''}本）</h3>`+(items.length?items.map(it=>cardHtml(it,recommend(it,prof),prof.n>=3)).join(''):'<div class="empty" style="grid-column:1/-1">条件に合う作品がありません</div>');
+  g.innerHTML=sec('🎬 劇場公開',th,ui.mmData.theater.length)+sec('📺 配信スタート（Netflix・Prime）',st,ui.mmData.stream.length);
 }
 function movieListItems(){
   let rs=entries('mv').filter(r=>{
