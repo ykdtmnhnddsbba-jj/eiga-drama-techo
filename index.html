@@ -258,7 +258,8 @@ async function fetchCour(year,season,cont,force){
 }
 // 映画の月別一覧（実写のみ）。劇場=日本で劇場公開された作品、配信=その月に初公開され、いまNetflix/Primeで見放題の作品
 const MV_EXCLUDE=new Set([16,99]);   // アニメ（アニメ手帖で管理）・ドキュメンタリー（ライブ映像・スポーツ記録など）は除く
-const MONTH_MAX=30;
+const MONTH_MAX=30,MONTH_PAST=14;   // 今月以降は30本、過去の月は人気上位14本（本人指示 2026-11-28）
+function monthLimit(y,m){const d=new Date();return (y*12+m)<(d.getFullYear()*12+d.getMonth()+1)?MONTH_PAST:MONTH_MAX}
 function monthRange(y,m){return{start:`${y}-${pad2(m)}-01`,end:`${y}-${pad2(m)}-${pad2(new Date(y,m,0).getDate())}`}}
 async function fetchMonth(y,m,force){
   const key=y+'-'+pad2(m);
@@ -1158,7 +1159,8 @@ async function loadMonth(force){
   try{
     const d=await fetchMonth(ui.mmY,ui.mmM,force);if(tok!==ui.mmTok)return;
     ui.mmData={key:ui.mmY+'-'+pad2(ui.mmM),theater:d.theater,stream:d.stream};
-    queueStreaming(d.theater.concat(d.stream));
+    const lim=monthLimit(ui.mmY,ui.mmM),top=a=>a.slice().sort((x,y)=>y.pop-x.pop).slice(0,lim);
+    queueStreaming(top(d.theater).concat(top(d.stream)));
   }catch(e){if(tok!==ui.mmTok)return;ui.mmError=e.message}
   ui.mmLoading=false;
   if(ui.tab==='movie'&&ui.mSub==='month'){renderMonthGrid();updateStreamNote()}
@@ -1192,10 +1194,12 @@ function renderMonthGridRaw(){
   if(ui.mmError){note.innerHTML=errPanel(ui.mmError);g.innerHTML='';bindErr();return}
   if(!ui.mmData){note.innerHTML='';g.innerHTML='';return}
   const prof=buildProfile('mv');
-  const th=monthVisible(ui.mmData.theater,prof),st=monthVisible(ui.mmData.stream,prof);
-  note.innerHTML=`<p class="hint">${ui.mmY}年${ui.mmM}月の映画（実写のみ・アニメとドキュメンタリーは除く）。劇場公開は日本で公開された作品を人気順に最大${MONTH_MAX}本、配信スタートはこの月に初公開され、いまNetflix・Primeで見放題の作品です。TMDBに未登録の作品は載りません。</p>`;
+  const lim=monthLimit(ui.mmY,ui.mmM),top=a=>a.slice().sort((x,y)=>y.pop-x.pop).slice(0,lim);
+  const thAll=top(ui.mmData.theater),stAll=top(ui.mmData.stream);
+  const th=monthVisible(thAll,prof),st=monthVisible(stAll,prof);
+  note.innerHTML=`<p class="hint">${ui.mmY}年${ui.mmM}月の映画（実写のみ・アニメとドキュメンタリーは除く）。劇場公開は日本で公開された作品を人気順に最大${lim}本、配信スタートはこの月に初公開され、いまNetflix・Primeで見放題の作品（人気順に最大${lim}本）です。TMDBに未登録の作品は載りません。</p>`;
   const sec=(title,items,total)=>`<h3 class="gh" style="grid-column:1/-1">${title}（${items.length}${items.length!==total?' / '+total:''}本）</h3>`+(items.length?items.map(it=>cardHtml(it,recommend(it,prof),prof.n>=3)).join(''):'<div class="empty" style="grid-column:1/-1">条件に合う作品がありません</div>');
-  g.innerHTML=sec('🎬 劇場公開',th,ui.mmData.theater.length)+sec('📺 配信スタート（Netflix・Prime）',st,ui.mmData.stream.length);
+  g.innerHTML=sec('🎬 劇場公開',th,thAll.length)+sec('📺 配信スタート（Netflix・Prime）',st,stAll.length);
 }
 function movieListItems(){
   let rs=entries('mv').filter(r=>{
